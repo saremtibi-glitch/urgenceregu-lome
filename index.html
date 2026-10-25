@@ -1,0 +1,3320 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="UrgenceRégu Lomé – Régulation des urgences et orientation des accidentés en temps réel.">
+  <title>UrgenceRégu Lomé – Régulation des urgences</title>
+
+  <!-- Police Inter (si pas d'Internet, le navigateur utilise automatiquement une police système) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Carte Leaflet + OpenStreetMap (sans Internet, la carte est simplement masquée) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+
+  <!-- Application installable sur téléphone (PWA) et composants communs -->
+  <link rel="manifest" href="/manifest-temoin.webmanifest">
+  <meta name="theme-color" content="#0056B3">
+  <link rel="icon" type="image/png" href="/icones/icone-192.png">
+  <link rel="apple-touch-icon" href="/icones/icone-192.png">
+  <link rel="stylesheet" href="/commun/commun.css">
+
+  <style>
+    /* =========================================================
+       1. VARIABLES DE LA CHARTE GRAPHIQUE
+       ========================================================= */
+    :root {
+      --bleu: #0056B3;
+      --bleu-fonce: #00428A;
+      --bleu-clair: #EAF2FC;
+      --bleu-bordure: #CFE0F5;
+      --blanc: #FFFFFF;
+      --gris-carte: #F8F9FA;
+      --rouge: #FF4D4D;
+      --rouge-fonce: #E63E3E;
+      --rouge-clair: #FFECEC;
+      --vert: #17935A;
+      --vert-clair: #E5F6ED;
+      --jaune: #B7800A;
+      --jaune-clair: #FFF5D9;
+      --texte: #1D2939;
+      --texte-doux: #667085;
+      --bordure: #E6E9EE;
+      --fond-app: #F4F7FC;
+      --fond-champ: #F4F7FC;
+      --rayon: 16px;
+      --rayon-petit: 12px;
+      --ombre: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --ombre-forte: 0 14px 36px rgba(0, 0, 0, 0.09);
+      --ombre-bleue: 0 10px 30px rgba(0, 86, 179, 0.14);
+      --transition: all 0.3s ease;
+    }
+
+    /* =========================================================
+       2. BASE
+       ========================================================= */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(1200px 420px at 50% -220px, rgba(0, 86, 179, .06), transparent 70%),
+        var(--fond-app);
+      color: var(--texte);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    button { font: inherit; }
+
+    /* =========================================================
+       3. EN-TÊTE
+       ========================================================= */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255, 255, 255, .85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+    }
+
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand { display: flex; align-items: center; gap: 14px; }
+
+    /* Logo médical dessiné uniquement en CSS (croix blanche sur fond bleu) */
+    .logo {
+      position: relative;
+      width: 50px;
+      height: 50px;
+      flex-shrink: 0;
+      border-radius: 15px;
+      background: linear-gradient(140deg, #1C7FE6 0%, var(--bleu) 55%, var(--bleu-fonce) 100%);
+      box-shadow: 0 8px 18px rgba(0, 86, 179, .30), inset 0 1px 0 rgba(255, 255, 255, .25);
+    }
+    .logo::before, .logo::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      background: var(--blanc);
+      border-radius: 3px;
+      transform: translate(-50%, -50%);
+    }
+    .logo::before { width: 26px; height: 8px; }
+    .logo::after  { width: 8px; height: 26px; }
+    .logo-ring {
+      position: absolute;
+      inset: -5px;
+      border-radius: 19px;
+      border: 2px solid rgba(0, 86, 179, .25);
+      animation: respire 3s ease-in-out infinite;
+    }
+
+    .brand h1 {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -.02em;
+      color: var(--bleu);
+      line-height: 1.2;
+    }
+    .brand h1 span { color: var(--texte); font-weight: 700; }
+    .brand p { font-size: .88rem; color: var(--texte-doux); }
+
+    .header-status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 13px;
+      border-radius: 999px;
+      font-size: .8rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .pill-live { background: var(--vert-clair); color: var(--vert); transition: var(--transition); }
+    .pill-live.demo { background: var(--jaune-clair); color: var(--jaune); }
+    .pill-live.demo .live-dot, .pill-live.demo .live-dot::after { background: currentColor; }
+    .pill-clock {
+      background: var(--fond-app);
+      color: var(--texte);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .live-dot {
+      position: relative;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--vert);
+    }
+    .live-dot::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: var(--vert);
+      animation: ping 1.6s cubic-bezier(0, 0, .2, 1) infinite;
+    }
+
+    /* =========================================================
+       4. MISE EN PAGE PRINCIPALE (2 colonnes)
+       ========================================================= */
+    .layout {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 28px 24px 32px;
+      display: grid;
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+      gap: 28px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--blanc);
+      border: none;
+      border-radius: var(--rayon);
+      padding: 26px;
+      box-shadow: var(--ombre);
+      transition: var(--transition);
+      animation: apparition .6s ease both;
+    }
+    .panel:nth-child(2) { animation-delay: .1s; }
+
+    .panel-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 22px; }
+
+    .step {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      display: grid;
+      place-items: center;
+      background: var(--bleu-clair);
+      color: var(--bleu);
+      font-weight: 800;
+    }
+
+    .panel-head h2 { font-size: 1.12rem; font-weight: 700; letter-spacing: -.01em; }
+    .panel-head p  { font-size: .86rem; color: var(--texte-doux); }
+
+    /* =========================================================
+       5. FORMULAIRE TÉMOIN
+       ========================================================= */
+    .field { margin-bottom: 18px; }
+
+    .field label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: .9rem;
+      font-weight: 600;
+    }
+
+    .input-wrap { position: relative; }
+    .input-wrap .icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1rem;
+      pointer-events: none;
+    }
+
+    .field input, .field textarea {
+      width: 100%;
+      font: inherit;
+      font-size: .95rem;
+      color: var(--texte);
+      background: var(--fond-champ);
+      border: none;
+      border-radius: var(--rayon-petit);
+      padding: 14px 15px;
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+      transition: var(--transition);
+    }
+    .field input:hover, .field textarea:hover { background: #EEF3FA; }
+    .field input { padding-left: 42px; }
+    .field textarea { min-height: 140px; resize: vertical; }
+
+    .field input::placeholder, .field textarea::placeholder { color: #98A2B3; }
+
+    .field input:focus, .field textarea:focus {
+      outline: none;
+      background: var(--blanc);
+      box-shadow: 0 0 0 3px rgba(0, 86, 179, .14), 0 6px 20px rgba(0, 86, 179, .08);
+    }
+
+    .field.invalide input, .field.invalide textarea {
+      background: #FFF7F7;
+      box-shadow: 0 0 0 3px rgba(255, 77, 77, .18);
+      animation: secousse .35s ease;
+    }
+
+    .field-hint {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 6px;
+      font-size: .78rem;
+      color: var(--texte-doux);
+    }
+    .error-msg { display: none; color: var(--rouge-fonce); font-weight: 500; }
+    .field.invalide .error-msg { display: inline; }
+
+    .exemples { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; }
+    .exemples-label { font-size: .78rem; color: var(--texte-doux); }
+
+    .chip-exemple {
+      padding: 6px 12px;
+      font-size: .78rem;
+      font-weight: 500;
+      color: var(--bleu);
+      background: var(--bleu-clair);
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .chip-exemple:hover { color: var(--blanc); background: var(--bleu); transform: translateY(-2px); box-shadow: var(--ombre-bleue); }
+
+    /* Gros bouton d'alerte Rouge Corail */
+    .btn-urgence {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: min(100%, 360px);
+      margin: 10px auto 0;
+      padding: 17px 28px;
+      font-size: 1.02rem;
+      font-weight: 700;
+      color: var(--blanc);
+      background: var(--rouge);
+      border: none;
+      border-radius: var(--rayon);
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(255, 77, 77, .28);
+      transition: var(--transition);
+    }
+    .btn-urgence:hover:not(:disabled) {
+      background: var(--rouge-fonce);
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(255, 77, 77, .38);
+    }
+    .btn-urgence:active:not(:disabled) { transform: translateY(0); }
+    .btn-urgence:focus-visible { outline: 3px solid rgba(255, 77, 77, .4); outline-offset: 3px; }
+    .btn-urgence:disabled { opacity: .75; cursor: wait; }
+
+    .mini-spinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2.5px solid rgba(255, 255, 255, .4);
+      border-top-color: var(--blanc);
+      animation: rotation .8s linear infinite;
+    }
+
+    /* =========================================================
+       6. ZONE RÉSULTAT GEMMA
+       ========================================================= */
+    .result-zone { margin-top: 26px; scroll-margin-top: 100px; }
+
+    .section-label {
+      margin-bottom: 10px;
+      font-size: .76rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--texte-doux);
+    }
+
+    .result-vide {
+      padding: 24px;
+      text-align: center;
+      font-size: .9rem;
+      color: var(--texte-doux);
+      background: var(--fond-app);
+      border: none;
+      border-radius: var(--rayon);
+      animation: fondu .5s ease both;
+    }
+    .result-vide .big { display: block; font-size: 1.8rem; margin-bottom: 6px; }
+
+    /* Loader */
+    .loader-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      padding: 32px 20px;
+      background: var(--fond-app);
+      border-radius: var(--rayon);
+      animation: fondu .4s ease both;
+    }
+    /* Cercle rotatif fin et épuré */
+    .spinner {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 2px solid rgba(0, 86, 179, .12);
+      border-top-color: var(--bleu);
+      animation: rotation 1s cubic-bezier(.55, .15, .45, .85) infinite;
+    }
+    .loader-title { font-weight: 700; color: var(--bleu); }
+    .loader-steps { list-style: none; width: 100%; max-width: 320px; display: grid; gap: 8px; }
+    .loader-steps li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: .85rem;
+      color: #98A2B3;
+      transition: var(--transition);
+    }
+    .loader-steps li::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: #D0D5DD;
+      transition: var(--transition);
+    }
+    .loader-steps li.actif { color: var(--bleu); font-weight: 600; }
+    .loader-steps li.actif::before { background: var(--bleu); animation: respire 1s ease-in-out infinite; }
+    .loader-steps li.fait { color: var(--vert); }
+    .loader-steps li.fait::before { background: var(--vert); }
+
+    .loader-track { width: 100%; max-width: 320px; height: 3px; background: rgba(0, 86, 179, .10); border-radius: 99px; overflow: hidden; }
+    .loader-fill { height: 100%; width: 0; background: var(--bleu); border-radius: 99px; animation: remplir 2s ease-in-out forwards; }
+
+    /* Encadré bleu clair du résultat : apparition en fondu de 0.5 s */
+    .result-card {
+      background: var(--bleu-clair);
+      border: none;
+      border-radius: var(--rayon);
+      padding: 22px;
+      box-shadow: var(--ombre-bleue);
+      animation: fondu .5s ease both;
+    }
+
+    .result-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+
+    .gemma-tag { display: inline-flex; align-items: center; gap: 7px; font-size: .8rem; font-weight: 700; color: var(--bleu); }
+    .gemma-star {
+      display: grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      background: var(--bleu);
+      color: var(--blanc);
+      font-size: .8rem;
+    }
+
+    .gravite { padding: 4px 11px; border-radius: 999px; font-size: .74rem; font-weight: 700; }
+    .gravite.critique { background: var(--rouge); color: var(--blanc); animation: respire 1.6s ease-in-out infinite; }
+    .gravite.urgent   { background: var(--jaune-clair); color: var(--jaune); }
+    .gravite.modere   { background: var(--blanc); color: var(--bleu); }
+
+    .diagnostic { margin: 12px 0 4px; font-size: 1.06rem; font-weight: 700; line-height: 1.35; color: #0B2E59; }
+    .lieu-info  { font-size: .85rem; color: var(--texte-doux); }
+    .note-nouveau { margin-top: 10px; padding: 9px 12px; font-size: .82rem; color: var(--bleu); background: var(--bleu-clair); border-radius: 10px; }
+    .note-nouveau[hidden] { display: none; }
+
+    .result-bloc { margin-top: 16px; }
+    .result-bloc h4 { margin-bottom: 8px; font-size: .78rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--bleu); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip-mot {
+      padding: 4px 10px;
+      font-size: .76rem;
+      font-weight: 600;
+      color: var(--bleu);
+      background: var(--blanc);
+      border: none;
+      border-radius: 999px;
+      box-shadow: 0 2px 8px rgba(0, 86, 179, .06);
+    }
+
+    .confiance { display: flex; align-items: center; gap: 10px; font-size: .82rem; color: var(--texte-doux); }
+    .confiance-track { flex: 1; height: 6px; background: var(--blanc); border-radius: 99px; overflow: hidden; }
+    .confiance-fill { height: 100%; background: linear-gradient(90deg, #4C9BEA, var(--bleu)); border-radius: 99px; transition: width 1s ease; }
+
+    .reco-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 8px;
+      padding: 12px 14px;
+      background: var(--blanc);
+      border-radius: var(--rayon-petit);
+      box-shadow: var(--ombre);
+      transition: var(--transition);
+      animation: fondu .5s ease both;
+    }
+    .reco-item:hover { transform: translateY(-2px); box-shadow: var(--ombre-forte); }
+    .reco-item strong { display: block; font-size: .92rem; }
+    .reco-item small  { font-size: .78rem; color: var(--texte-doux); }
+
+    .conseils { list-style: none; display: grid; gap: 6px; }
+    .conseils li { position: relative; padding-left: 22px; font-size: .86rem; }
+    .conseils li::before { content: '✓'; position: absolute; left: 0; font-weight: 800; color: var(--bleu); }
+
+    .avertissement {
+      margin-top: 10px;
+      padding: 10px 12px;
+      font-size: .82rem;
+      font-weight: 500;
+      color: #B42318;
+      background: var(--rouge-clair);
+      border-radius: 10px;
+    }
+
+    .btn-secondaire {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 16px;
+      padding: 9px 16px;
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--bleu);
+      background: var(--blanc);
+      border: none;
+      border-radius: var(--rayon-petit);
+      box-shadow: var(--ombre);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-secondaire:hover { color: var(--blanc); background: var(--bleu); box-shadow: var(--ombre-bleue); transform: translateY(-2px); }
+
+    /* Journal des alertes */
+    .journal { margin-top: 26px; }
+    .journal-liste { list-style: none; display: grid; gap: 8px; }
+    .journal-liste li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      font-size: .84rem;
+      background: var(--fond-app);
+      border-radius: var(--rayon-petit);
+      transition: var(--transition);
+      animation: fondu .5s ease both;
+    }
+    .journal-liste li time { font-size: .76rem; color: var(--texte-doux); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .journal-liste .vide { justify-content: center; color: var(--texte-doux); }
+    .journal-droite { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .etat-journal { padding: 2px 9px; font-size: .72rem; font-weight: 700; white-space: nowrap; border-radius: 999px; transition: var(--transition); }
+    .etat-journal.attente  { color: var(--jaune); background: var(--jaune-clair); }
+    .etat-journal.acceptee { color: var(--vert); background: var(--vert-clair); }
+    .etat-journal.refusee  { color: var(--blanc); background: var(--rouge); }
+    .motif-refus { font-size: .76rem; color: var(--texte-doux); }
+
+    /* =========================================================
+       7. TABLEAU DE BORD DES HÔPITAUX
+       ========================================================= */
+    .dash-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+    .dash-head .panel-head { margin-bottom: 0; }
+
+    .refresh-box { min-width: 230px; flex: 0 1 260px; }
+    .refresh-label { display: flex; justify-content: space-between; gap: 8px; font-size: .78rem; color: var(--texte-doux); }
+    .refresh-label strong { color: var(--bleu); font-variant-numeric: tabular-nums; }
+    .refresh-track { height: 5px; margin-top: 8px; background: var(--fond-app); border-radius: 99px; overflow: hidden; }
+    .refresh-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #4C9BEA, var(--bleu)); border-radius: 99px; transition: width 1s linear; }
+
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--fond-app);
+      border-radius: var(--rayon-petit);
+      transition: var(--transition);
+    }
+    .stat:hover { background: var(--blanc); box-shadow: var(--ombre); }
+    .stat-dot { width: 10px; height: 10px; flex-shrink: 0; border-radius: 50%; }
+    .stat-dot.disponible { background: var(--vert); }
+    .stat-dot.limite     { background: #E9B308; }
+    .stat-dot.sature     { background: var(--rouge); }
+    .stat strong { display: block; font-size: 1.35rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+    .stat span   { font-size: .78rem; color: var(--texte-doux); }
+
+    .hospital-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+    .hospital-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 20px;
+      background: var(--blanc);
+      border: none;
+      border-radius: var(--rayon);
+      box-shadow: var(--ombre);
+      transition: var(--transition);
+    }
+    .hospital-card.entree { animation: apparition .5s ease both; }
+    /* Effet de soulèvement doux au survol */
+    .hospital-card:hover { transform: translateY(-4px); box-shadow: var(--ombre-forte); }
+
+    .hospital-card.recommande {
+      order: -1;
+      background: linear-gradient(180deg, #F5F9FF 0%, var(--blanc) 60%);
+      box-shadow: 0 0 0 2px rgba(0, 86, 179, .22), var(--ombre-bleue);
+    }
+    .hospital-card.recommande:hover { box-shadow: 0 0 0 2px rgba(0, 86, 179, .30), 0 18px 40px rgba(0, 86, 179, .18); }
+    .hospital-card.flash::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: calc(var(--rayon) + 2px);
+      pointer-events: none;
+      animation: onde 1.3s ease-out;
+    }
+
+    .ruban {
+      position: absolute;
+      top: -11px;
+      left: 18px;
+      padding: 3px 10px;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .03em;
+      color: var(--blanc);
+      background: var(--bleu);
+      border-radius: 999px;
+      box-shadow: 0 4px 10px rgba(0, 86, 179, .3);
+    }
+
+    .hc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .hc-top h3 { font-size: 1rem; font-weight: 700; line-height: 1.3; }
+    .hc-lieu { margin-top: 3px; font-size: .82rem; color: var(--texte-doux); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+      padding: 5px 11px;
+      font-size: .74rem;
+      font-weight: 700;
+      white-space: nowrap;
+      border-radius: 999px;
+      transition: var(--transition);
+    }
+    .badge.disponible { background: var(--vert-clair); color: var(--vert); }
+    .badge.limite     { background: var(--jaune-clair); color: var(--jaune); }
+    .badge.sature     { background: var(--rouge); color: var(--blanc); }
+    .chip-spec {
+      padding: 4px 10px;
+      font-size: .74rem;
+      font-weight: 500;
+      color: #344054;
+      background: var(--fond-app);
+      border: none;
+      border-radius: 999px;
+      transition: var(--transition);
+    }
+    .chip-spec.match { color: var(--bleu); background: var(--bleu-clair); font-weight: 600; }
+
+    .hc-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 12px;
+      font-size: .8rem;
+      color: var(--texte-doux);
+      border-top: 1px solid rgba(0, 0, 0, 0.04);
+    }
+    .hc-meta .lits { font-weight: 600; color: var(--texte); }
+    .hc-meta .lits.zero { color: var(--rouge-fonce); }
+    .maj-ancienne { font-weight: 600; color: var(--jaune); }
+
+    /* Bouton "Envoyer l'alerte" (alerte = rouge corail) */
+    .btn-envoyer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      margin-top: auto;
+      padding: 11px 14px;
+      font-size: .88rem;
+      font-weight: 700;
+      color: var(--rouge-fonce);
+      background: var(--rouge-clair);
+      border: none;
+      border-radius: var(--rayon-petit);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-envoyer:hover:not(:disabled) {
+      color: var(--blanc);
+      background: var(--rouge);
+      box-shadow: 0 8px 20px rgba(255, 77, 77, .28);
+      transform: translateY(-2px);
+    }
+    .btn-envoyer:focus-visible { outline: 3px solid rgba(255, 77, 77, .35); outline-offset: 2px; }
+    .recommande .btn-envoyer, .reco-item .btn-envoyer { color: var(--blanc); background: var(--rouge); box-shadow: 0 6px 16px rgba(255, 77, 77, .22); }
+    .recommande .btn-envoyer:hover:not(:disabled), .reco-item .btn-envoyer:hover:not(:disabled) { background: var(--rouge-fonce); }
+    .reco-item .btn-envoyer { width: auto; margin-top: 0; padding: 8px 14px; font-size: .82rem; white-space: nowrap; }
+    .btn-envoyer.en-cours { opacity: .8; cursor: wait; }
+    .btn-envoyer.envoye,
+    .btn-envoyer.envoye:hover {
+      color: var(--vert);
+      background: var(--vert-clair);
+      box-shadow: none;
+      transform: none;
+      cursor: default;
+    }
+    .btn-envoyer .mini-spinner { width: 15px; height: 15px; border-color: rgba(230, 62, 62, .3); border-top-color: var(--rouge-fonce); }
+    .recommande .btn-envoyer .mini-spinner, .reco-item .btn-envoyer .mini-spinner { border-color: rgba(255, 255, 255, .4); border-top-color: var(--blanc); }
+
+    /* Suivi de l'alerte et de l'ambulance */
+    .suivi { margin-bottom: 22px; padding: 18px; border-radius: var(--rayon); box-shadow: var(--ombre); animation: fondu .5s ease; }
+    .suivi[hidden] { display: none; }
+    .suivi.attente  { background: var(--bleu-clair); }
+    .suivi.acceptee { background: var(--vert-clair); }
+    .suivi.refusee  { background: var(--rouge-clair); }
+    .suivi-titre { display: flex; align-items: flex-start; gap: 12px; }
+    .suivi-titre .icone { font-size: 1.6rem; line-height: 1; }
+    .suivi-titre strong { display: block; font-size: 1rem; color: var(--texte); }
+    .suivi-titre p { margin-top: 3px; font-size: .84rem; color: var(--texte-doux); }
+    .suivi.acceptee .suivi-titre strong { color: var(--vert); }
+    .suivi.refusee .suivi-titre strong { color: var(--rouge-fonce); }
+    .suivi .mini-spinner { margin-top: 4px; border-color: rgba(0, 86, 179, .25); border-top-color: var(--bleu); }
+    .etapes-suivi { display: flex; gap: 6px; margin: 16px 0 12px; }
+    .etapes-suivi li { flex: 1; list-style: none; text-align: center; font-size: .7rem; font-weight: 600; color: var(--texte-doux); }
+    .etapes-suivi li::before { content: ''; display: block; height: 5px; margin-bottom: 6px; border-radius: 99px; background: rgba(0, 0, 0, .08); transition: var(--transition); }
+    .etapes-suivi li.fait { color: var(--vert); }
+    .etapes-suivi li.fait::before { background: var(--vert); }
+    .etapes-suivi li.actif { color: var(--bleu); }
+    .etapes-suivi li.actif::before { background: var(--bleu); animation: pulsationEtape 1.4s ease-in-out infinite; }
+    @keyframes pulsationEtape { 50% { opacity: .45; } }
+    .eta-suivi { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .eta-suivi strong { font-size: 1.35rem; color: var(--texte); }
+    .eta-suivi span { font-size: .76rem; color: var(--texte-doux); }
+    .carte-suivi { height: 230px; border-radius: var(--rayon-petit); overflow: hidden; background: var(--blanc); z-index: 0; }
+    .marqueur-ambulance {
+      display: grid;
+      place-items: center;
+      width: 36px !important;
+      height: 36px !important;
+      font-size: 1.2rem;
+      background: var(--blanc);
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px var(--bleu), var(--ombre-forte);
+      transition: transform .3s ease;
+    }
+    .marqueur-hopital { display: grid; place-items: center; width: 30px !important; height: 30px !important; font-size: 1rem; background: var(--blanc); border-radius: 50%; box-shadow: 0 0 0 3px var(--vert), var(--ombre); }
+    .suivi-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .suivi-actions a, .suivi-actions button {
+      flex: 1 1 140px;
+      padding: 9px 12px;
+      font-size: .82rem;
+      font-weight: 600;
+      text-align: center;
+      text-decoration: none;
+      color: var(--bleu);
+      background: var(--blanc);
+      border: none;
+      border-radius: var(--rayon-petit);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .suivi-actions a:hover, .suivi-actions button:hover { transform: translateY(-2px); box-shadow: var(--ombre); }
+    .suivi-actions .principal { color: var(--blanc); background: var(--rouge); }
+    .suivi-autres { margin-top: 10px; font-size: .76rem; color: var(--texte-doux); }
+
+    /* Discussion avec l'ambulance et l'hôpital */
+    .discussion { margin: -10px 0 22px; padding: 16px 18px; background: var(--blanc); border-radius: var(--rayon); box-shadow: var(--ombre); }
+    .disc-tete strong { display: block; font-size: .95rem; }
+    .disc-tete p { font-size: .8rem; color: var(--texte-doux); }
+    .disc-liste { list-style: none; display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto; margin: 12px 0; padding: 2px; }
+    .disc-msg { align-self: flex-start; max-width: 85%; padding: 8px 12px; font-size: .88rem; background: var(--fond-app); border-radius: 14px; }
+    .disc-msg.moi { align-self: flex-end; color: var(--blanc); background: var(--bleu); }
+    .disc-msg.grave.moi { background: var(--rouge); }
+    .disc-auteur { display: block; margin-bottom: 2px; font-size: .7rem; font-weight: 700; opacity: .8; }
+    .disc-vide, .disc-fermee { padding: 6px; font-size: .82rem; color: var(--texte-doux); text-align: center; }
+    .disc-rapides { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .disc-rapides button { padding: 7px 12px; font: inherit; font-size: .8rem; font-weight: 600; color: var(--bleu); background: var(--bleu-clair); border: none; border-radius: 99px; cursor: pointer; transition: var(--transition); }
+    .disc-rapides button.danger { color: var(--rouge-fonce); background: var(--rouge-clair); }
+    .disc-rapides button:hover { transform: translateY(-1px); box-shadow: var(--ombre); }
+    .disc-saisie { display: flex; gap: 8px; }
+    .disc-saisie input { flex: 1; min-width: 0; padding: 11px 13px; font: inherit; font-size: .9rem; color: var(--texte); background: var(--fond-champ); border: none; border-radius: var(--rayon-petit); }
+    .disc-saisie input:focus { outline: none; background: var(--blanc); box-shadow: 0 0 0 3px rgba(0, 86, 179, .14); }
+    .disc-saisie button { padding: 11px 16px; font: inherit; font-weight: 700; color: var(--blanc); background: var(--bleu); border: none; border-radius: var(--rayon-petit); cursor: pointer; }
+
+    /* Carte des hôpitaux et de l'accident */
+    .carte-zone { margin-bottom: 18px; }
+    .carte {
+      height: 320px;
+      border-radius: var(--rayon);
+      overflow: hidden;
+      background: var(--bleu-clair);
+      box-shadow: var(--ombre);
+      z-index: 0;
+    }
+    .carte-indispo { height: 100%; display: grid; place-items: center; padding: 20px; text-align: center; font-size: .88rem; color: var(--texte-doux); }
+    .carte-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .btn-carte {
+      flex: 1 1 160px;
+      padding: 10px 14px;
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--bleu);
+      background: var(--bleu-clair);
+      border: none;
+      border-radius: var(--rayon-petit);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-carte:hover:not(:disabled) { background: var(--bleu-bordure); transform: translateY(-2px); }
+    .btn-carte:disabled { opacity: .6; cursor: wait; }
+    .btn-carte[aria-pressed="true"] { color: var(--blanc); background: var(--bleu); box-shadow: var(--ombre-bleue); }
+    .carte.mode-choix, .carte.mode-choix .leaflet-container { cursor: crosshair; }
+    .carte.mode-choix { box-shadow: 0 0 0 3px var(--bleu), var(--ombre-bleue); }
+    .marqueur-moi {
+      width: 18px !important;
+      height: 18px !important;
+      background: #1A73E8;
+      border: 3px solid var(--blanc);
+      border-radius: 50%;
+      box-shadow: 0 0 0 6px rgba(26, 115, 232, .2);
+    }
+    .carte-info { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: .78rem; color: var(--texte-doux); }
+    .carte-info .ok { color: var(--vert); font-weight: 600; }
+    .marqueur-accident {
+      display: grid;
+      place-items: center;
+      width: 38px !important;
+      height: 38px !important;
+      font-size: 1.25rem;
+      background: var(--blanc);
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(255, 77, 77, .35), var(--ombre-forte);
+      animation: pulsationAccident 1.8s ease-out infinite;
+    }
+    @keyframes pulsationAccident {
+      from { box-shadow: 0 0 0 0 rgba(255, 77, 77, .55), var(--ombre-forte); }
+      to   { box-shadow: 0 0 0 18px rgba(255, 77, 77, 0), var(--ombre-forte); }
+    }
+    .leaflet-popup-content-wrapper { border-radius: var(--rayon-petit); box-shadow: var(--ombre-forte); font-family: inherit; }
+    .leaflet-popup-content { margin: 12px 14px; min-width: 200px; }
+    .popup-hopital strong { display: block; font-size: .9rem; color: var(--texte); }
+    .popup-hopital small { display: block; margin: 3px 0 10px; font-size: .78rem; color: var(--texte-doux); }
+    .popup-hopital .btn-envoyer { width: 100%; padding: 8px 10px; font-size: .8rem; }
+    .hc-distance { margin-top: 4px; font-size: .8rem; font-weight: 600; color: var(--bleu); }
+    .hc-tel { display: inline-block; margin-top: 4px; font-size: .8rem; font-weight: 600; color: var(--bleu); text-decoration: none; }
+    .source-ia { margin-top: 12px; font-size: .74rem; color: var(--texte-doux); }
+    .source-ia.secours { color: var(--jaune); }
+
+    .legende { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 18px; font-size: .78rem; color: var(--texte-doux); }
+    .legende > span { display: inline-flex; align-items: center; gap: 6px; }
+
+    /* Petite indexation du type d'établissement */
+    .tag-type {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      font-size: .64rem;
+      font-weight: 800;
+      letter-spacing: .06em;
+      border-radius: 6px;
+      vertical-align: middle;
+    }
+    .tag-type.public       { color: var(--bleu); background: var(--bleu-clair); }
+    .tag-type.prive        { color: #475467; background: #EEF0F3; }
+    .tag-type.polyclinique { color: #0E7C86; background: #E3F6F7; }
+
+    .tag-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .tag-dot.public       { background: var(--bleu); }
+    .tag-dot.prive        { background: #667085; }
+    .tag-dot.polyclinique { background: #0E9AA7; }
+
+    /* Filtres du tableau de bord */
+    .filtres { display: grid; gap: 12px; margin-bottom: 18px; }
+
+    .recherche-hopital { position: relative; }
+    .recherche-hopital span { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: .9rem; pointer-events: none; }
+    .recherche-hopital input {
+      width: 100%;
+      padding: 12px 14px 12px 40px;
+      font: inherit;
+      font-size: .9rem;
+      color: var(--texte);
+      background: var(--fond-app);
+      border: none;
+      border-radius: var(--rayon-petit);
+      transition: var(--transition);
+    }
+    .recherche-hopital input:hover { background: #EEF3FA; }
+    .recherche-hopital input:focus {
+      outline: none;
+      background: var(--blanc);
+      box-shadow: 0 0 0 3px rgba(0, 86, 179, .14), 0 6px 20px rgba(0, 86, 179, .08);
+    }
+
+    .segments { display: flex; flex-wrap: wrap; gap: 8px; }
+    .segment {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 14px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--texte-doux);
+      background: var(--fond-app);
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .segment:hover { color: var(--bleu); background: var(--bleu-clair); }
+    .segment.actif { color: var(--blanc); background: var(--bleu); box-shadow: var(--ombre-bleue); }
+    .segment.actif .tag-dot { background: var(--blanc); }
+    .segment .compte {
+      min-width: 22px;
+      padding: 1px 7px;
+      font-size: .72rem;
+      text-align: center;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, .06);
+    }
+    .segment.actif .compte { background: rgba(255, 255, 255, .22); }
+
+    .nb-resultats { font-size: .8rem; color: var(--texte-doux); }
+
+    .aucun-resultat {
+      grid-column: 1 / -1;
+      padding: 30px;
+      text-align: center;
+      color: var(--texte-doux);
+      background: var(--fond-app);
+      border-radius: var(--rayon);
+      animation: fondu .5s ease both;
+    }
+
+    /* Liste de suggestions des lieux (recherche) */
+    .btn-effacer {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px;
+      height: 28px;
+      font-size: 1.1rem;
+      line-height: 1;
+      color: #98A2B3;
+      background: transparent;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-effacer:hover { color: var(--texte); background: #E4EAF3; }
+    .combobox input { padding-right: 44px; }
+
+    .suggestions {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      z-index: 30;
+      max-height: 300px;
+      overflow-y: auto;
+      list-style: none;
+      padding: 6px;
+      background: var(--blanc);
+      border-radius: var(--rayon-petit);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, .12);
+      animation: fondu .25s ease both;
+    }
+    .suggestions .groupe {
+      padding: 10px 10px 4px;
+      font-size: .68rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #98A2B3;
+    }
+    .suggestions .option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 10px;
+      font-size: .9rem;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .suggestions .option small { font-size: .74rem; color: var(--texte-doux); white-space: nowrap; }
+    .suggestions .option:hover,
+    .suggestions .option.active { background: var(--bleu-clair); color: var(--bleu); }
+    .suggestions mark { background: transparent; color: var(--bleu); font-weight: 700; }
+    .suggestions .vide { padding: 12px 10px; font-size: .84rem; color: var(--texte-doux); }
+
+    /* =========================================================
+       8. NOTIFICATIONS (TOASTS)
+       ========================================================= */
+    .toast-container {
+      position: fixed;
+      top: 92px;
+      right: 20px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: min(390px, calc(100vw - 32px));
+      pointer-events: none;
+    }
+
+    .toast {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px 16px;
+      overflow: hidden;
+      background: var(--blanc);
+      border: none;
+      border-left: 4px solid var(--bleu);
+      border-radius: var(--rayon);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.10);
+      pointer-events: auto;
+      animation: toastEntree .45s cubic-bezier(.2, .9, .3, 1.15);
+    }
+    .toast.sortie { animation: toastSortie .3s ease forwards; }
+
+    .toast.succes   { border-left-color: var(--vert);  --accent: var(--vert); }
+    .toast.info     { border-left-color: var(--bleu);  --accent: var(--bleu); }
+    .toast.attention{ border-left-color: #E9B308;      --accent: #E9B308; }
+    .toast.critique { border-left-color: var(--rouge); --accent: var(--rouge); background: #FFF8F8; }
+
+    .toast-icone {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      flex-shrink: 0;
+      font-size: 1rem;
+      border-radius: 10px;
+      background: var(--fond-app);
+    }
+    .toast-texte { flex: 1; min-width: 0; }
+    .toast-texte strong { display: block; font-size: .9rem; }
+    .toast-texte p { margin-top: 2px; font-size: .82rem; color: var(--texte-doux); }
+
+    .toast-fermer {
+      padding: 2px 6px;
+      font-size: 1.1rem;
+      line-height: 1;
+      color: #98A2B3;
+      background: none;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .toast-fermer:hover { color: var(--texte); background: var(--fond-app); }
+
+    .toast-progression {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      height: 3px;
+      width: 100%;
+      background: var(--accent, var(--bleu));
+      transform-origin: left;
+      animation: retrecir linear forwards;
+    }
+
+    /* =========================================================
+       9. PIED DE PAGE
+       ========================================================= */
+    .footer {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 8px 24px 32px;
+      text-align: center;
+      font-size: .8rem;
+      color: var(--texte-doux);
+    }
+
+    /* =========================================================
+       10. ANIMATIONS
+       ========================================================= */
+    @keyframes ping       { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.8); opacity: 0; } }
+    @keyframes respire    { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .65; transform: scale(1.04); } }
+    @keyframes rotation   { to { transform: rotate(360deg); } }
+    @keyframes remplir    { to { width: 100%; } }
+    @keyframes apparition { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fondu      { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes secousse   { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    @keyframes onde       { from { box-shadow: 0 0 0 0 rgba(0, 86, 179, .45); } to { box-shadow: 0 0 0 16px rgba(0, 86, 179, 0); } }
+    @keyframes retrecir   { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+    @keyframes toastEntree{ from { opacity: 0; transform: translateX(40px) scale(.96); } to { opacity: 1; transform: none; } }
+    @keyframes toastSortie{ to { opacity: 0; transform: translateX(40px) scale(.96); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+
+    /* =========================================================
+       11. RESPONSIVE (tablettes et smartphones)
+       ========================================================= */
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    @media (max-width: 600px) {
+      .header-inner { padding: 12px 16px; }
+      .brand h1 { font-size: 1.18rem; }
+      .brand p { font-size: .8rem; }
+      .logo { width: 44px; height: 44px; border-radius: 13px; }
+      .layout { padding: 18px 14px 24px; gap: 18px; }
+      .panel { padding: 18px; border-radius: var(--rayon); }
+      .stats { gap: 8px; }
+      .stat { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; }
+      .hospital-grid { grid-template-columns: 1fr; }
+      .carte { height: 260px; }
+      .refresh-box { flex: 1 1 100%; }
+      .reco-item { flex-direction: column; align-items: stretch; }
+      .reco-item .btn-envoyer { width: 100%; }
+      .toast-container { top: auto; bottom: 14px; right: 14px; left: 14px; width: auto; }
+    }
+
+    /* Coordonnées du témoin, demandées au moment d'envoyer l'alerte */
+    .fenetre-contact {
+      width: min(440px, calc(100vw - 28px));
+      margin: auto;
+      padding: 24px;
+      border: none;
+      border-radius: var(--rayon);
+      background: var(--blanc);
+      color: var(--texte);
+      box-shadow: var(--ombre-forte);
+    }
+    .fenetre-contact::backdrop { background: rgba(29, 41, 57, .45); }
+    .fenetre-contact h3 { font-size: 1.1rem; margin-bottom: 4px; }
+    .fenetre-contact .sous-titre { color: var(--texte-doux); font-size: .88rem; margin-bottom: 16px; }
+    .fenetre-contact .field { margin-bottom: 14px; }
+    .fenetre-contact .optionnel { color: var(--texte-doux); font-weight: 500; }
+    .fenetre-contact .mention {
+      font-size: .78rem; color: var(--texte-doux); line-height: 1.45;
+      padding: 10px 12px; margin-bottom: 16px; border-radius: var(--rayon-petit); background: var(--gris-carte);
+    }
+    .fenetre-contact .boutons { display: flex; gap: 10px; justify-content: flex-end; }
+    .fenetre-contact .boutons button {
+      padding: 11px 18px; border: none; border-radius: var(--rayon-petit);
+      font: inherit; font-weight: 600; cursor: pointer; transition: var(--transition);
+    }
+    .fenetre-contact .btn-annuler { background: var(--fond-champ); color: var(--texte); }
+    .fenetre-contact .btn-confirmer { background: var(--rouge); color: var(--blanc); box-shadow: 0 6px 16px rgba(255, 77, 77, .22); }
+    .fenetre-contact .btn-confirmer:hover { background: var(--rouge-fonce); }
+
+    /* Dictée vocale dans la description et la discussion */
+    .zone-texte { position: relative; }
+    .zone-texte textarea { padding-right: 58px; }
+    .zone-texte .btn-micro { position: absolute; right: 10px; bottom: 10px; }
+    .disc-saisie .btn-micro { width: 42px; height: auto; border-radius: var(--rayon-petit); }
+
+    /* Le bouton d'appel flottant ne doit cacher ni le pied de page ni les notifications */
+    .footer { padding-bottom: 80px; }
+    @media (max-width: 600px) {
+      .toast-container { bottom: 78px; }
+      .header-status { flex-wrap: wrap; justify-content: flex-end; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- =========================================================
+       EN-TÊTE
+       ========================================================= -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"><span class="logo-ring"></span></div>
+        <div>
+          <h1>UrgenceRégu <span>Lomé</span></h1>
+          <p>Régulation des urgences et orientation des accidentés en temps réel</p>
+        </div>
+      </div>
+      <div class="header-status">
+        <span class="pill pill-live demo" id="etat-reseau"><span class="live-dot"></span> <span id="texte-reseau">Connexion au serveur…</span></span>
+        <span class="pill pill-clock" id="horloge" aria-label="Heure actuelle">--:--:--</span>
+        <select class="choix-langue" id="choix-langue" aria-label="Langue / Gbe / Kʊnʊŋ">
+          <option value="fr">🇫🇷 Français</option>
+          <option value="ee">Eʋegbe</option>
+          <option value="kbp">Kabɩyɛ</option>
+        </select>
+        <button type="button" class="btn-installer" id="btn-installer" hidden data-i18n="installer">📲 Installer</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <!-- =========================================================
+         SECTION GAUCHE : FORMULAIRE TÉMOIN + ANALYSE GEMMA
+         ========================================================= -->
+    <section class="panel" aria-labelledby="titre-signalement">
+      <div class="panel-head">
+        <span class="step">1</span>
+        <div>
+          <h2 id="titre-signalement" data-i18n="titreSignalement">Signalement du témoin</h2>
+          <p data-i18n="sousTitreSignalement">Décrivez la situation : Agbe AI vous oriente vers l'hôpital le plus adapté.</p>
+        </div>
+      </div>
+
+      <p class="note-traduction" id="note-traduction" hidden></p>
+
+      <!-- Sans réseau, le témoin doit pouvoir appeler immédiatement -->
+      <div class="bandeau-hors-ligne" id="bandeau-hors-ligne" role="alert" hidden>
+        <span aria-hidden="true">📵</span>
+        <span data-i18n="horsLigne">Pas de connexion au réseau des hôpitaux. Appelez directement les secours.</span>
+        <a href="tel:118">📞 118</a>
+      </div>
+
+      <!-- Suivi de l'alerte envoyée : réponse de l'hôpital et position de l'ambulance -->
+      <div class="suivi" id="zone-suivi" aria-live="polite" hidden></div>
+
+      <!-- Discussion avec l'ambulance et l'hôpital (hors du bandeau : sa mise à jour n'efface pas la saisie) -->
+      <div class="discussion" id="zone-discussion" hidden>
+        <div class="disc-tete">
+          <strong data-i18n="discussionTitre">💬 Discussion avec l'ambulance</strong>
+          <p data-i18n="discussionAide">Signalez tout changement de l'état de la victime : l'équipe et l'hôpital vous lisent en direct.</p>
+        </div>
+        <ul class="disc-liste" id="disc-liste" aria-live="polite"></ul>
+        <div id="disc-ouverte">
+          <div class="disc-rapides" id="disc-rapides">
+            <button type="button" class="danger" data-rapide="🫁 La victime ne respire plus" data-i18n="rapideRespire">🫁 Ne respire plus</button>
+            <button type="button" class="danger" data-rapide="😵 La victime a perdu connaissance" data-i18n="rapideConnaissance">😵 A perdu connaissance</button>
+            <button type="button" class="danger" data-rapide="🩸 Saignement important" data-i18n="rapideSaigne">🩸 Saignement important</button>
+            <button type="button" data-rapide="👁️ La victime a repris connaissance" data-i18n="rapideReveil">👁️ A repris connaissance</button>
+            <button type="button" data-rapide="↔️ Nous avons dû déplacer la victime" data-i18n="rapideDeplacee">↔️ Victime déplacée</button>
+            <button type="button" data-rapide="📍 Je vous attends au bord de la route" data-i18n="rapideRoute">📍 Je vous attends au bord de la route</button>
+          </div>
+          <form class="disc-saisie" id="disc-form">
+            <input id="disc-texte" maxlength="300" autocomplete="off" placeholder="Écrire à l'ambulance…" data-i18n-placeholder="phDiscussion" aria-label="Message à l'ambulance">
+            <button type="button" class="btn-micro" id="micro-discussion" hidden
+                    title="Dicter au lieu d'écrire" aria-label="Dicter un message" aria-pressed="false">🎤</button>
+            <button type="submit" data-i18n="envoyer">Envoyer</button>
+          </form>
+        </div>
+        <p class="disc-fermee" id="disc-fermee" hidden>Intervention terminée : la discussion est fermée.</p>
+      </div>
+
+      <form id="formulaire" novalidate>
+        <div class="field" id="champ-lieu">
+          <label for="lieu" data-i18n="labelLieu">Localisation de l'accident</label>
+          <div class="input-wrap combobox">
+            <span class="icon" aria-hidden="true">📍</span>
+            <input type="text" id="lieu" autocomplete="off"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="liste-lieux"
+                   placeholder="Rechercher : Carrefour Deckon, Adidogomé…" data-i18n-placeholder="phLieu">
+            <button type="button" class="btn-effacer" id="effacer-lieu" aria-label="Effacer la localisation" hidden>×</button>
+            <ul class="suggestions" id="liste-lieux" role="listbox" hidden></ul>
+          </div>
+          <div class="field-hint">
+            <span class="error-msg">Veuillez indiquer où se trouve la victime.</span>
+            <span id="info-lieux">Tapez pour rechercher parmi les lieux de Lomé</span>
+          </div>
+        </div>
+
+        <div class="field" id="champ-description">
+          <label for="description" data-i18n="labelEtat">État du patient</label>
+          <div class="zone-texte">
+            <textarea id="description" maxlength="500"
+                      placeholder="Ex : Le motard est inconscient et saigne à la tête…" data-i18n-placeholder="phDescription"></textarea>
+            <button type="button" class="btn-micro" id="micro-description" hidden
+                    title="Dicter au lieu d'écrire" aria-label="Dicter l'état du patient" aria-pressed="false">🎤</button>
+          </div>
+          <div class="field-hint">
+            <span class="error-msg">Décrivez l'état du patient (au moins 10 caractères).</span>
+            <span id="compteur">0 / 500</span>
+          </div>
+          <div class="exemples">
+            <span class="exemples-label" data-i18n="exemples">Exemples :</span>
+            <button type="button" class="chip-exemple"
+                    data-lieu="Carrefour Deckon"
+                    data-texte="Accident de moto : le motard est inconscient et saigne à la tête.">🏍️ Accident de moto</button>
+            <button type="button" class="chip-exemple"
+                    data-lieu="Adidogomé"
+                    data-texte="Un homme a une forte douleur à la poitrine et il respire difficilement.">❤️ Douleur thoracique</button>
+            <button type="button" class="chip-exemple"
+                    data-lieu="Bè"
+                    data-texte="Une femme enceinte a des contractions très rapprochées et a perdu les eaux.">🤰 Accouchement</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-urgence" id="btn-analyser" data-i18n="btnAnalyser">
+          🚨 Analyser l'Urgence avec Agbe AI
+        </button>
+      </form>
+
+      <!-- Zone de feedback de l'analyse -->
+      <div class="result-zone" id="zone-resultat" aria-live="polite">
+        <p class="section-label" data-i18n="resultat">Résultat de l'analyse Agbe AI</p>
+        <div id="contenu-resultat">
+          <div class="result-vide">
+            <span class="big">🩺</span>
+            Remplissez le formulaire puis lancez l'analyse pour obtenir une orientation.
+          </div>
+        </div>
+      </div>
+
+      <!-- Journal des alertes envoyées -->
+      <div class="journal">
+        <p class="section-label" data-i18n="journal">Journal des alertes envoyées</p>
+        <ul class="journal-liste" id="journal">
+          <li class="vide">Aucune alerte envoyée pour le moment.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         SECTION DROITE : TABLEAU DE BORD DES HÔPITAUX
+         ========================================================= -->
+    <section class="panel" aria-labelledby="titre-hopitaux">
+      <div class="dash-head">
+        <div class="panel-head">
+          <span class="step">2</span>
+          <div>
+            <h2 id="titre-hopitaux" data-i18n="titreHopitaux">Hôpitaux de Lomé – Temps réel</h2>
+            <p>Disponibilité des services d'urgence du Grand Lomé.</p>
+          </div>
+        </div>
+        <div class="refresh-box">
+          <div class="refresh-label">
+            <span id="libelle-refresh">Prochaine mise à jour</span>
+            <strong id="compte-a-rebours">30 s</strong>
+          </div>
+          <div class="refresh-track"><div class="refresh-fill" id="barre-refresh"></div></div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><span class="stat-dot disponible"></span><div><strong id="stat-disponible">0</strong><span>Disponibles</span></div></div>
+        <div class="stat"><span class="stat-dot limite"></span><div><strong id="stat-limite">0</strong><span>Limités</span></div></div>
+        <div class="stat"><span class="stat-dot sature"></span><div><strong id="stat-sature">0</strong><span>Saturés</span></div></div>
+      </div>
+
+      <!-- Carte : accident (🚨) et hôpitaux colorés selon leur disponibilité -->
+      <div class="carte-zone">
+        <div class="carte" id="carte" role="region" aria-label="Carte de l'accident et des hôpitaux"></div>
+        <div class="carte-actions">
+          <button type="button" class="btn-carte" id="btn-ma-position">📍 Ma position</button>
+          <button type="button" class="btn-carte" id="btn-changer-position" aria-pressed="false">✋ Changer de position</button>
+        </div>
+        <div class="carte-info">
+          <span id="info-carte">Recherche de votre position…</span>
+          <span>Distances et durées de trajet estimées</span>
+        </div>
+      </div>
+
+      <!-- Filtres : recherche + type d'établissement -->
+      <div class="filtres">
+        <div class="recherche-hopital">
+          <span aria-hidden="true">🔍</span>
+          <input type="search" id="recherche-hopital" autocomplete="off"
+                 placeholder="Rechercher un hôpital, un quartier ou une spécialité…"
+                 aria-label="Rechercher un hôpital">
+        </div>
+        <div class="segments" role="group" aria-label="Filtrer par type d'établissement">
+          <button type="button" class="segment actif" data-type="tous">Tous <span class="compte" data-compte="tous"></span></button>
+          <button type="button" class="segment" data-type="public"><span class="tag-dot public"></span>Public <span class="compte" data-compte="public"></span></button>
+          <button type="button" class="segment" data-type="prive"><span class="tag-dot prive"></span>Privé <span class="compte" data-compte="prive"></span></button>
+          <button type="button" class="segment" data-type="polyclinique"><span class="tag-dot polyclinique"></span>Polyclinique <span class="compte" data-compte="polyclinique"></span></button>
+        </div>
+        <p class="nb-resultats" id="nb-hopitaux"></p>
+      </div>
+
+      <div class="hospital-grid" id="grille-hopitaux"></div>
+
+      <div class="legende">
+        <span>🟢 Disponible</span>
+        <span>🟡 Limité</span>
+        <span>🔴 Saturé</span>
+        <span><span class="tag-type public">PUB</span> Public</span>
+        <span><span class="tag-type prive">PRV</span> Privé</span>
+        <span><span class="tag-type polyclinique">POLY</span> Polyclinique</span>
+        <span>Statuts actualisés toutes les 30 secondes</span>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    Prototype pédagogique – GitHub Dev Days · Données simulées à des fins de démonstration.
+    En cas d'urgence réelle, contactez immédiatement les services de secours.
+  </footer>
+
+  <!-- Conteneur des notifications -->
+  <div class="toast-container" id="toasts" aria-live="assertive"></div>
+
+  <!-- Appel direct aux secours : fonctionne même sans Internet -->
+  <button type="button" class="btn-appel-flottant" id="btn-appel">
+    <span class="appel-icone" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>
+    </span>
+    <span class="appel-texte">
+      <strong data-i18n="appelerSecours">Appeler les secours</strong>
+      <small>118 · 161 · 172</small>
+    </span>
+  </button>
+  <dialog class="fenetre-appel" id="fenetre-appel" aria-labelledby="titre-appel">
+    <h3 id="titre-appel" data-i18n="titreAppel">📞 Appeler les secours</h3>
+    <p class="sous-titre" data-i18n="sousTitreAppel">Appels gratuits, même sans crédit ni Internet. Donnez le lieu exact et l'état de la victime.</p>
+    <ul class="liste-numeros" id="liste-numeros"></ul>
+    <button type="button" class="fermer" id="fermer-appel" data-i18n="fermer">Fermer</button>
+  </dialog>
+
+  <!-- Coordonnées du témoin : l'hôpital et l'ambulance pourront le rappeler -->
+  <dialog class="fenetre-contact" id="fenetre-contact" aria-labelledby="titre-contact">
+    <form method="dialog" id="form-contact" novalidate>
+      <h3 id="titre-contact" data-i18n="titreContact">📞 Vos coordonnées</h3>
+      <p class="sous-titre" id="sous-titre-contact">Les secours vous rappelleront si besoin pour trouver la victime.</p>
+      <div class="field" id="champ-tel">
+        <label for="temoin-tel" data-i18n="labelTel">Votre numéro de téléphone</label>
+        <div class="input-wrap">
+          <span class="icon" aria-hidden="true">📱</span>
+          <input type="tel" id="temoin-tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="90 12 34 56">
+        </div>
+        <div class="field-hint"><span class="error-msg">Numéro togolais à 8 chiffres (ex : 90 12 34 56).</span></div>
+      </div>
+      <div class="field">
+        <label for="temoin-nom" data-i18n="labelNom">Votre nom (facultatif)</label>
+        <div class="input-wrap">
+          <span class="icon" aria-hidden="true">👤</span>
+          <input type="text" id="temoin-nom" autocomplete="name" maxlength="60" placeholder="Ex : Kossi A.">
+        </div>
+      </div>
+      <p class="mention">Votre numéro est transmis uniquement à l'hôpital choisi et à son ambulance.
+        Une fausse alerte volontaire peut être facturée.</p>
+      <div class="boutons">
+        <button type="button" class="btn-annuler" id="btn-annuler-contact" data-i18n="annuler">Annuler</button>
+        <button type="submit" class="btn-confirmer" data-i18n="envoyerAlerte">🚨 Envoyer l'alerte</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/commun/commun.js"></script>
+  <script src="/commun/langues-temoin.js"></script>
+  <script>
+    'use strict';
+
+    /* =========================================================
+       1. CONFIGURATION
+       ========================================================= */
+    const INTERVALLE_TEMPS_REEL = 30;   // secondes entre deux mises à jour des statuts
+    const DUREE_ANALYSE_MS = 2000;      // durée du chargement de l'analyse Gemma
+    const DUREE_ETAT_ENVOYE_MS = 15000; // durée pendant laquelle le bouton reste "Alerte envoyée"
+
+    // Libellés et emojis de chaque statut de disponibilité
+    const STATUTS = {
+      disponible: { libelle: 'Disponible', emoji: '🟢' },
+      limite:     { libelle: 'Limité',     emoji: '🟡' },
+      sature:     { libelle: 'Saturé',     emoji: '🔴' }
+    };
+
+    // Ordre de préférence pour trier les hôpitaux (le plus disponible d'abord)
+    const PRIORITE_STATUT = { disponible: 0, limite: 1, sature: 2 };
+
+    // Types d'établissements (petite indexation affichée sur chaque carte)
+    const TYPES = {
+      public:       { libelle: 'Public',       code: 'PUB' },
+      prive:        { libelle: 'Privé',        code: 'PRV' },
+      polyclinique: { libelle: 'Polyclinique', code: 'POLY' }
+    };
+
+    // Nombre maximum d'hôpitaux recommandés par Gemma
+    const MAX_RECOMMANDATIONS = 3;
+    // Au-delà (≈ 25 min de route), un hôpital n'est recommandé que s'il n'existe rien de plus proche
+    const DISTANCE_MAX_KM = 10;
+    // Un statut d'hôpital plus ancien est signalé comme « à confirmer »
+    const STATUT_ANCIEN_MS = 3600 * 1000;
+
+    /* =========================================================
+       2. DONNÉES DES HÔPITAUX ET DES LIEUX
+       Source unique : donnees/hopitaux.json et donnees/lieux.json
+       (les mêmes fichiers remplissent la base du serveur).
+       En mode connecté, le serveur remplace ces données par les siennes.
+       ========================================================= */
+    const hopitaux = [];
+    const LIEUX = [];
+
+    async function chargerDonneesDeSecours() {
+      try {
+        const [listeHopitaux, listeLieux] = await Promise.all([
+          fetch('/donnees/hopitaux.json').then(r => r.json()),
+          fetch('/donnees/lieux.json').then(r => r.json())
+        ]);
+        if (!hopitaux.length) hopitaux.push(...listeHopitaux.map(h => ({ ...h, majA: new Date() })));
+        if (!LIEUX.length) LIEUX.push(...listeLieux.map(l => ({ nom: l.nom, groupe: l.groupe })));
+      } catch { /* page ouverte sans serveur ni cache : liste vide */ }
+    }
+
+    /* =========================================================
+       3. DICTIONNAIRE DE MOTS-CLÉS DE "GEMMA" (IA simulée)
+       Chaque catégorie possède : des mots-clés, un diagnostic,
+       les hôpitaux ciblés, les besoins médicaux et des conseils.
+       ========================================================= */
+    const DICTIONNAIRE_GEMMA = {
+      traumatologie: {
+        motsCles: ['tête', 'inconscient', 'sang', 'saigne', 'saignement', 'hémorragie', 'fracture', 'crâne',
+                   'accident', 'moto', 'motard', 'renversé', 'plaie', 'coma', 'cassé', 'choc'],
+        diagnostic: 'Traumatologie / Besoin de réanimation immédiate identifié',
+        graviteParDefaut: 'urgent',
+        hopitaux: ['chu-so', 'dogta'],
+        besoins: ['Scanner', 'Bloc opératoire', 'Réanimation', 'Traumatologie', 'Neurochirurgie'],
+        conseils: [
+          'Ne déplacez pas la victime (risque de lésion de la colonne vertébrale).',
+          'Ne retirez pas le casque du motard.',
+          'Comprimez la plaie qui saigne avec un tissu propre.',
+          'Parlez à la victime et vérifiez qu\'elle respire en attendant les secours.'
+        ]
+      },
+      cardiologie: {
+        motsCles: ['poitrine', 'cœur', 'cardiaque', 'malaise', 'essoufflé', 'respire', 'respiration', 'étouffe', 'thoracique'],
+        diagnostic: 'Urgence cardio-respiratoire / Surveillance intensive requise',
+        graviteParDefaut: 'urgent',
+        hopitaux: ['chu-campus', 'saint-joseph', 'union', 'biasa'],
+        besoins: ['Cardiologie', 'Réanimation'],
+        conseils: [
+          'Installez la personne en position demi-assise.',
+          'Desserrez ses vêtements et éloignez les curieux.',
+          'Si elle ne respire plus, commencez le massage cardiaque.'
+        ]
+      },
+      obstetrique: {
+        motsCles: ['enceinte', 'accouchement', 'accouche', 'contractions', 'grossesse', 'perdu les eaux', 'bébé arrive'],
+        diagnostic: 'Urgence obstétricale / Prise en charge en maternité',
+        graviteParDefaut: 'urgent',
+        hopitaux: ['hopital-be', 'union', 'chu-campus', 'autel-elie', 'agoe', 'chr-lome'],
+        besoins: ['Maternité', 'Gynéco-obstétrique'],
+        conseils: [
+          'Allongez la patiente sur le côté gauche.',
+          'Préparez des linges propres et restez à ses côtés.',
+          'Notez l\'heure des contractions pour l\'équipe médicale.'
+        ]
+      },
+      brulure: {
+        motsCles: ['brûlé', 'brûlure', 'brûle', 'feu', 'incendie', 'explosion'],
+        diagnostic: 'Brûlures étendues / Soins spécialisés des brûlés',
+        graviteParDefaut: 'urgent',
+        hopitaux: ['dogta', 'chu-so'],
+        besoins: ['Brûlés', 'Réanimation'],
+        conseils: [
+          'Refroidissez la brûlure à l\'eau tempérée pendant 15 minutes.',
+          'Ne retirez pas les vêtements collés à la peau.',
+          'Couvrez la zone avec un linge propre et humide.'
+        ]
+      },
+      pediatrie: {
+        motsCles: ['enfant', 'bébé', 'nourrisson', 'fillette', 'garçonnet'],
+        diagnostic: 'Urgence pédiatrique / Évaluation par un pédiatre',
+        graviteParDefaut: 'urgent',
+        hopitaux: ['chu-campus', 'saint-joseph', 'hopital-be', 'autel-elie'],
+        besoins: ['Pédiatrie'],
+        conseils: [
+          'Rassurez l\'enfant et gardez-le au chaud.',
+          'Ne lui donnez ni à boire ni à manger.',
+          'Prévenez ses parents ou un adulte responsable.'
+        ]
+      }
+    };
+
+    // Mots qui indiquent une urgence vitale (gravité "critique")
+    const MOTS_CRITIQUES = ['inconscient', 'coma', 'ne respire', 'respire plus', 'hémorragie',
+                            'saigne beaucoup', 'convulse', 'convulsion', 'arrêt cardiaque', 'ne bouge plus'];
+
+    // Analyse par défaut si aucun mot-clé n'est reconnu
+    const ANALYSE_PAR_DEFAUT = {
+      diagnostic: 'Urgence médicale générale / Évaluation clinique nécessaire',
+      besoins: ['Urgences générales', 'Médecine interne'],
+      conseils: [
+        'Restez auprès de la victime et rassurez-la.',
+        'Ne lui donnez pas de médicament sans avis médical.',
+        'Surveillez sa respiration et son état de conscience.'
+      ]
+    };
+
+    /* =========================================================
+       4. ÉTAT DE L'APPLICATION
+       ========================================================= */
+    const etat = {
+      analyse: null,                // dernier résultat de Gemma
+      envoisEnCours: new Set(),     // hôpitaux en cours d'envoi d'alerte
+      alertesEnvoyees: new Map(),   // hôpital -> minuteur de réinitialisation
+      journal: [],                  // historique des alertes
+      secondesRestantes: INTERVALLE_TEMPS_REEL,
+      premierAffichage: true,
+      filtreType: 'tous',           // filtre du tableau de bord : tous / public / prive / polyclinique
+      rechercheHopital: '',         // texte de recherche du tableau de bord
+      modeConnecte: false,          // true quand le serveur (back-office) répond
+      tentativesWs: 0,              // tentatives de reconnexion au temps réel
+      indexSuggestion: -1,          // suggestion de lieu sélectionnée au clavier
+      suggestions: [],              // lieux actuellement proposés dans la liste
+      gemmaActif: false,            // true quand le serveur a une clé Google AI Studio
+      positionAccident: null,       // { lat, lng, manuelle } une fois l'accident localisé
+      lieuLocalise: '',             // dernier lieu envoyé au géocodage
+      lieuAuto: '',                 // texte du lieu rempli automatiquement depuis le GPS ou la carte
+      modeChoixPosition: false,     // true : le prochain toucher sur la carte place l'accident
+      positionUtilisateur: null     // { lat, lng } donnée par le GPS de l'appareil
+    };
+
+    /* =========================================================
+       5. RÉFÉRENCES DOM
+       ========================================================= */
+    const formulaire = $('formulaire');
+    const champLieu = $('lieu');
+    const champDescription = $('description');
+    const btnAnalyser = $('btn-analyser');
+    const contenuResultat = $('contenu-resultat');
+    const grilleHopitaux = $('grille-hopitaux');
+
+    /* =========================================================
+       6. OUTILS
+       ========================================================= */
+
+    // Met en minuscules et retire les accents : "Tête" et "tete" deviennent identiques
+    function normaliser(texte) {
+      return texte
+        .toLowerCase()
+        .replace(/œ/g, 'oe')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function formaterHeure(date, avecSecondes = false) {
+      return date.toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        ...(avecSecondes ? { second: '2-digit' } : {})
+      });
+    }
+
+    const trouverHopital = (id) => hopitaux.find(h => h.id === id);
+    const estRecommande = (id) => Boolean(etat.analyse && etat.analyse.hopitaux.includes(id));
+
+    /* =========================================================
+       7. MOTEUR D'ANALYSE
+       Le vrai Gemma (via le serveur) est utilisé en priorité ;
+       l'analyse par mots-clés sert de secours hors connexion.
+       ========================================================= */
+    const MOTEUR_SECOURS = 'Analyse de secours par mots-clés (Agbe AI indisponible)';
+
+    async function demanderAGemma(lieu, description) {
+      if (!etat.modeConnecte || !etat.gemmaActif) return null;
+      try {
+        const reponse = await fetch(API + '/api/analyse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lieu, description }),
+          signal: AbortSignal.timeout(30000)
+        });
+        if (!reponse.ok) throw new Error(reponse.status);
+        const r = await reponse.json();
+        return {
+          categorie: r.categorie,
+          gravite: r.gravite,
+          diagnostic: r.diagnostic,
+          besoins: r.besoins,
+          conseils: r.conseils,
+          motsDetectes: r.indices,
+          confiance: null,
+          moteur: r.moteur
+        };
+      } catch {
+        afficherToast('attention', 'Agbe AI ne répond pas', 'Analyse de secours par mots-clés utilisée à la place.');
+        return null;
+      }
+    }
+
+    // Complète un résultat (Gemma ou mots-clés) avec les hôpitaux recommandés
+    function construireAnalyse(base, lieu) {
+      const categorie = DICTIONNAIRE_GEMMA[base.categorie];
+      const besoins = base.besoins.length ? base.besoins : (categorie ? categorie.besoins : ANALYSE_PAR_DEFAUT.besoins);
+      const conseils = base.conseils.length ? base.conseils : (categorie ? categorie.conseils : ANALYSE_PAR_DEFAUT.conseils);
+
+      // Hôpitaux de la catégorie ; sinon ceux qui ont un service demandé ; sinon tous.
+      // On garde les plus disponibles, puis les plus proches de l'accident (ou ceux qui ont le plus de lits).
+      let candidats = categorie ? categorie.hopitaux.map(trouverHopital).filter(Boolean) : [];
+      if (!candidats.length) candidats = hopitaux.filter(h => h.specialites.some(sp => besoins.includes(sp)));
+      if (!candidats.length) candidats = [...hopitaux];
+
+      const trier = (liste) => liste.sort((a, b) => PRIORITE_STATUT[a.statut] - PRIORITE_STATUT[b.statut]
+        || (etat.positionAccident ? distanceKm(a) - distanceKm(b) : b.lits - a.lits));
+      let selection = trier(candidats).slice(0, MAX_RECOMMANDATIONS);
+
+      // Spécialiste trop loin : on le remplace par les urgences adaptées les plus proches (stabilisation)
+      if (etat.positionAccident) {
+        const proches = selection.filter(h => distanceKm(h) <= DISTANCE_MAX_KM);
+        if (proches.length < selection.length) {
+          const renforts = trier(hopitaux.filter(h => !proches.includes(h)
+            && h.statut !== 'sature'
+            && distanceKm(h) <= DISTANCE_MAX_KM
+            && h.specialites.some(sp => sp === 'Urgences générales' || besoins.includes(sp))));
+          const completes = [...proches, ...renforts].slice(0, MAX_RECOMMANDATIONS);
+          if (completes.length) selection = completes;
+        }
+      }
+      const cibles = selection.map(h => h.id);
+
+      return {
+        ...base,
+        base,
+        diagnostic: base.diagnostic || (categorie ? categorie.diagnostic : ANALYSE_PAR_DEFAUT.diagnostic),
+        besoins,
+        conseils,
+        hopitaux: cibles,
+        tousSatures: cibles.every(id => trouverHopital(id).statut === 'sature'),
+        lieu
+      };
+    }
+
+    function analyserParMotsCles(description) {
+      const texte = normaliser(description);
+      let meilleureCategorie = null;
+      let meilleurScore = 0;
+      let motsDetectes = [];
+
+      // On compte combien de mots-clés de chaque catégorie apparaissent dans la description
+      for (const [cle, categorie] of Object.entries(DICTIONNAIRE_GEMMA)) {
+        const trouves = categorie.motsCles.filter(mot => texte.includes(normaliser(mot)));
+        if (trouves.length > meilleurScore) {
+          meilleurScore = trouves.length;
+          meilleureCategorie = cle;
+          motsDetectes = trouves;
+        }
+      }
+
+      const motsCritiques = MOTS_CRITIQUES.filter(mot => texte.includes(normaliser(mot)));
+      motsDetectes = [...new Set([...motsDetectes, ...motsCritiques])];
+
+      const categorie = meilleureCategorie ? DICTIONNAIRE_GEMMA[meilleureCategorie] : null;
+
+      // Niveau de gravité
+      let gravite = 'modere';
+      if (motsCritiques.length > 0) gravite = 'critique';
+      else if (categorie) gravite = categorie.graviteParDefaut;
+
+      // Indice de confiance simulé (plus il y a de mots reconnus, plus il est élevé)
+      const confiance = Math.min(97, (categorie ? 68 : 52) + motsDetectes.length * 7 + Math.floor(Math.random() * 4));
+
+      return {
+        categorie: meilleureCategorie,
+        diagnostic: '',
+        besoins: [],
+        conseils: [],
+        motsDetectes,
+        gravite,
+        confiance,
+        moteur: MOTEUR_SECOURS
+      };
+    }
+
+    /* =========================================================
+       8. VALIDATION DU FORMULAIRE
+       ========================================================= */
+    function marquerInvalide(idChamp, invalide) {
+      const champ = $(idChamp);
+      champ.classList.remove('invalide');
+      if (invalide) {
+        void champ.offsetWidth; // relance l'animation de secousse
+        champ.classList.add('invalide');
+      }
+    }
+
+    function validerFormulaire() {
+      const lieuInvalide = champLieu.value.trim().length === 0;
+      const descriptionInvalide = champDescription.value.trim().length < 10;
+      marquerInvalide('champ-lieu', lieuInvalide);
+      marquerInvalide('champ-description', descriptionInvalide);
+
+      if (lieuInvalide) champLieu.focus();
+      else if (descriptionInvalide) champDescription.focus();
+
+      if (lieuInvalide || descriptionInvalide) {
+        afficherToast('attention', 'Formulaire incomplet', 'Merci de renseigner la localisation et l\'état du patient.');
+        return false;
+      }
+      return true;
+    }
+
+    /* =========================================================
+       9. LANCEMENT DE L'ANALYSE (avec loader de 2 secondes)
+       ========================================================= */
+    const attendre = (ms) => new Promise(resoudre => setTimeout(resoudre, ms));
+
+    async function lancerAnalyse() {
+      const lieu = champLieu.value.trim();
+      const description = champDescription.value.trim();
+      btnAnalyser.disabled = true;
+      btnAnalyser.innerHTML = '<span class="mini-spinner"></span> ' + echapperHTML(t('analyseEnCours'));
+
+      contenuResultat.innerHTML = `
+        <div class="loader-box">
+          <div class="spinner" aria-hidden="true"></div>
+          <p class="loader-title">${t('analyseEnCours')}</p>
+          <ul class="loader-steps">
+            <li id="etape-1">Lecture de la description du témoin</li>
+            <li id="etape-2">Identification des besoins médicaux</li>
+            <li id="etape-3">Croisement avec la disponibilité des hôpitaux</li>
+          </ul>
+          <div class="loader-track"><div class="loader-fill"></div></div>
+        </div>`;
+
+      if (window.innerWidth < 980) {
+        $('zone-resultat').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // Animation des étapes du loader
+      const etapes = ['etape-1', 'etape-2', 'etape-3'];
+      etapes.forEach((id, index) => {
+        setTimeout(() => {
+          if (index > 0) $(etapes[index - 1])?.classList.replace('actif', 'fait');
+          $(id)?.classList.add('actif');
+        }, index * (DUREE_ANALYSE_MS / 3));
+      });
+
+      // Gemma, localisation de l'accident et durée minimale du loader en parallèle
+      const [resultatGemma] = await Promise.all([
+        demanderAGemma(lieu, description),
+        localiserAccident(lieu),
+        attendre(DUREE_ANALYSE_MS)
+      ]);
+
+      etat.analyse = construireAnalyse(resultatGemma || analyserParMotsCles(description), lieu);
+      afficherResultat(etat.analyse);
+      afficherHopitaux();
+      cadrerCarteSurAnalyse();
+
+      btnAnalyser.disabled = false;
+      btnAnalyser.textContent = t('btnAnalyser');
+
+      const noms = etat.analyse.hopitaux.map(id => trouverHopital(id).nom).join(' et ');
+      if (etat.analyse.gravite === 'critique') {
+        afficherToast('critique', 'Urgence vitale détectée', `Alertez sans attendre : ${noms}.`);
+      } else {
+        afficherToast('info', 'Analyse terminée', `Orientation conseillée : ${noms}.`);
+      }
+    }
+
+    /* =========================================================
+       10. AFFICHAGE DU RÉSULTAT DE GEMMA
+       ========================================================= */
+    function afficherResultat(analyse) {
+      const libellesGravite = { critique: '⚠ Urgence vitale', urgent: 'Urgent', modere: 'Modéré' };
+
+      const motsHTML = analyse.motsDetectes.length
+        ? analyse.motsDetectes.map(m => `<span class="chip-mot">${echapperHTML(m)}</span>`).join('')
+        : '<span class="chip-mot">Aucun mot-clé spécifique</span>';
+
+      const parGemma = analyse.moteur !== MOTEUR_SECOURS;
+      const confianceHTML = analyse.confiance == null ? '' : `
+          <div class="result-bloc">
+            <div class="confiance">
+              <span>Indice de confiance</span>
+              <div class="confiance-track"><div class="confiance-fill" id="barre-confiance" style="width:0"></div></div>
+              <strong>${analyse.confiance}%</strong>
+            </div>
+          </div>`;
+
+      contenuResultat.innerHTML = `
+        <div class="result-card">
+          <div class="result-head">
+            <span class="gemma-tag"><span class="gemma-star">✦</span> ${parGemma ? 'Analyse Agbe AI' : 'Analyse de secours'}</span>
+            <span class="gravite ${analyse.gravite}">${libellesGravite[analyse.gravite]}</span>
+          </div>
+          <p class="diagnostic">${echapperHTML(analyse.diagnostic)}</p>
+          <p class="lieu-info">📍 Lieu signalé : <strong>${echapperHTML(analyse.lieu)}</strong></p>
+          <p class="note-nouveau" id="note-nouveau" hidden>ℹ️ Nouveau signalement : ces hôpitaux et ces distances concernent <strong>${echapperHTML(analyse.lieu)}</strong>, pas l'intervention suivie en haut de la page.</p>
+
+          <div class="result-bloc">
+            <h4>Indices détectés</h4>
+            <div class="chips">${motsHTML}</div>
+          </div>
+
+          ${confianceHTML}
+
+          <div class="result-bloc">
+            <h4>${t('hopitauxRecommandes')}</h4>
+            <div id="liste-reco">${listeRecoHTML(analyse)}</div>
+            ${analyse.tousSatures ? '<p class="avertissement">⚠ Les établissements adaptés sont actuellement saturés : appelez-les avant le transport de la victime.</p>' : ''}
+          </div>
+
+          <div class="result-bloc">
+            <h4>${t('gestes')}</h4>
+            <ul class="conseils">${analyse.conseils.map(c => `<li>${echapperHTML(c)}</li>`).join('')}</ul>
+          </div>
+
+          <button type="button" class="btn-secondaire" id="btn-nouveau">${t('nouveauSignalement')}</button>
+          <p class="source-ia ${parGemma ? '' : 'secours'}">${parGemma ? '✦' : '⚠'} ${echapperHTML(analyse.moteur)} · orientation indicative, ne remplace pas l'avis d'un médecin.</p>
+        </div>`;
+
+      majVisibiliteCarte();
+
+      // Petite animation de remplissage de la barre de confiance
+      if (analyse.confiance != null) {
+        requestAnimationFrame(() => {
+          setTimeout(() => { $('barre-confiance').style.width = analyse.confiance + '%'; }, 50);
+        });
+      }
+    }
+
+    function listeRecoHTML(analyse) {
+      return analyse.hopitaux.map((id, i) => {
+        const h = trouverHopital(id);
+        const s = STATUTS[h.statut];
+        const trajet = trajetTexte(h);
+        return `
+          <div class="reco-item" style="animation-delay:${i * 0.1}s">
+            <div>
+              <strong>${i === 0 ? '🥇 ' : ''}${echapperHTML(h.nom)}</strong>
+              <small>${tagTypeHTML(h)} 📍 ${echapperHTML(h.quartier)} · <span class="etat-reco">${s.emoji} ${s.libelle}</span>${statutAncien(h) ? ' <span class="maj-ancienne">(à confirmer)</span>' : ''}${trajet ? ` · 🚑 ${trajet}` : ''}</small>
+            </div>
+            ${boutonAlerteHTML(h.id, t('btnAlerter'))}
+          </div>`;
+      }).join('');
+    }
+
+    // Met à jour uniquement les boutons et statuts de la liste recommandée
+    function rafraichirListeRecommandee() {
+      if (!etat.analyse || !$('liste-reco')) return;
+      etat.analyse.hopitaux.forEach(id => {
+        const h = trouverHopital(id);
+        const s = STATUTS[h.statut];
+        const bouton = document.querySelector(`#liste-reco [data-alerte="${id}"]`);
+        if (!bouton) return;
+        bouton.outerHTML = boutonAlerteHTML(id, t('btnAlerter'));
+        const ligne = document.querySelector(`#liste-reco [data-alerte="${id}"]`).closest('.reco-item');
+        ligne.querySelector('.etat-reco').textContent = `${s.emoji} ${s.libelle}`;
+      });
+    }
+
+    function reinitialiser() {
+      etat.analyse = null;
+      etat.lieuLocalise = '';
+      etat.lieuAuto = '';
+      formulaire.reset();
+      // Nouveau signalement : on repart de la position GPS du témoin, si elle est connue
+      const moi = etat.positionUtilisateur;
+      definirPositionAccident(moi ? { ...moi, manuelle: false, gps: true } : null);
+      if (moi) nommerPosition(moi.lat, moi.lng);
+      majBoutonEffacer();
+      $('compteur').textContent = '0 / 500';
+      contenuResultat.innerHTML = `
+        <div class="result-vide">
+          <span class="big">🩺</span>
+          Remplissez le formulaire puis lancez l'analyse pour obtenir une orientation.
+        </div>`;
+      afficherHopitaux();
+      majVisibiliteCarte();
+      champLieu.focus();
+    }
+
+    /* =========================================================
+       11. AFFICHAGE DES CARTES HÔPITAUX
+       ========================================================= */
+    function boutonAlerteHTML(id, libelle = t('btnAlerteHopital')) {
+      if (etat.envoisEnCours.has(id)) {
+        return `<button type="button" class="btn-envoyer en-cours" data-alerte="${id}" disabled><span class="mini-spinner"></span> Envoi en cours…</button>`;
+      }
+      if (etat.alertesEnvoyees.has(id)) {
+        return `<button type="button" class="btn-envoyer envoye" data-alerte="${id}" disabled>✓ Alerte envoyée</button>`;
+      }
+      return `<button type="button" class="btn-envoyer" data-alerte="${id}">${libelle}</button>`;
+    }
+
+    function tagTypeHTML(h) {
+      const type = TYPES[h.type];
+      return `<span class="tag-type ${h.type}" title="Établissement ${type.libelle.toLowerCase()}">${type.code}</span>`;
+    }
+
+    // Applique la recherche texte et le filtre par type
+    function hopitauxFiltres() {
+      const q = normaliser(etat.rechercheHopital.trim());
+      return hopitaux.filter(h => {
+        if (etat.filtreType !== 'tous' && h.type !== etat.filtreType) return false;
+        if (!q) return true;
+        const texte = normaliser([h.nom, h.quartier, TYPES[h.type].libelle, ...h.specialites].join(' '));
+        return texte.includes(q);
+      });
+    }
+
+    const statutAncien = (h) => Date.now() - h.majA.getTime() > STATUT_ANCIEN_MS;
+
+    function majHTML(h) {
+      if (!statutAncien(h)) return `<span>Mis à jour à ${formaterHeure(h.majA)}</span>`;
+      const heures = Math.floor((Date.now() - h.majA.getTime()) / 3600000);
+      return `<span class="maj-ancienne" title="Statut non actualisé par l'hôpital depuis ${heures} h : appelez avant le transport">⚠ Statut de ${formaterHeure(h.majA)}, à confirmer</span>`;
+    }
+
+    function carteHopitalHTML(h, aChange) {
+      const recommande = estRecommande(h.id);
+      const s = STATUTS[h.statut];
+      const besoins = etat.analyse ? etat.analyse.besoins : [];
+
+      const badge = `<span class="badge ${h.statut}">${s.emoji} ${s.libelle}</span>`;
+
+      const specialites = h.specialites
+        .map(sp => `<span class="chip-spec ${recommande && besoins.includes(sp) ? 'match' : ''}">${echapperHTML(sp)}</span>`)
+        .join('');
+
+      const lits = h.lits > 0
+        ? `🛏️ ${h.lits} lit${h.lits > 1 ? 's' : ''} d'urgence libre${h.lits > 1 ? 's' : ''}`
+        : '🛏️ Aucun lit libre';
+
+      const classes = [
+        'hospital-card',
+        recommande ? 'recommande' : '',
+        aChange ? 'flash' : '',
+        etat.premierAffichage ? 'entree' : ''
+      ].join(' ');
+
+      return `
+        <article class="${classes}" data-id="${h.id}">
+          ${recommande ? '<span class="ruban">✦ Recommandé par Agbe AI</span>' : ''}
+          <div class="hc-top">
+            <div>
+              <h3>${echapperHTML(h.nom)}</h3>
+              <p class="hc-lieu">${tagTypeHTML(h)} 📍 ${echapperHTML(h.quartier)}</p>
+              ${trajetTexte(h) ? `<p class="hc-distance">🚑 ${trajetTexte(h)} de l'accident</p>` : ''}
+              ${h.telephone ? `<a class="hc-tel" href="tel:${echapperHTML(h.telephone)}">📞 ${echapperHTML(formaterTel(h.telephone))}</a>` : ''}
+            </div>
+            ${badge}
+          </div>
+          <div class="chips">${specialites}</div>
+          <div class="hc-meta">
+            <span class="lits ${h.lits === 0 ? 'zero' : ''}">${lits}</span>
+            ${majHTML(h)}
+          </div>
+          ${boutonAlerteHTML(h.id)}
+        </article>`;
+    }
+
+    function afficherHopitaux(changements = new Set()) {
+      const visibles = hopitauxFiltres();
+      grilleHopitaux.innerHTML = visibles.length
+        ? visibles.map(h => carteHopitalHTML(h, changements.has(h.id))).join('')
+        : '<div class="aucun-resultat">🔍 Aucun établissement ne correspond à votre recherche.</div>';
+      etat.premierAffichage = false;
+
+      $('nb-hopitaux').textContent = `${visibles.length} établissement${visibles.length > 1 ? 's' : ''} affiché${visibles.length > 1 ? 's' : ''} sur ${hopitaux.length}`;
+      document.querySelectorAll('[data-compte]').forEach(el => {
+        const type = el.dataset.compte;
+        el.textContent = type === 'tous' ? hopitaux.length : hopitaux.filter(h => h.type === type).length;
+      });
+
+      // Statistiques globales
+      ['disponible', 'limite', 'sature'].forEach(statut => {
+        $('stat-' + statut).textContent = hopitaux.filter(h => h.statut === statut).length;
+      });
+
+      rafraichirListeRecommandee();
+      majCarte();
+    }
+
+    /* =========================================================
+       11 bis. CARTE (Leaflet + OpenStreetMap)
+       ========================================================= */
+    const CENTRE_LOME = [6.172, 1.222];
+    const COULEURS_STATUT = { disponible: '#17935A', limite: '#E0A100', sature: '#FF4D4D' };
+    const VITESSE_MOYENNE_KMH = 25;   // circulation urbaine à Lomé, ambulance comprise
+    const FACTEUR_ROUTE = 1.3;        // les routes ne vont pas en ligne droite
+    const carte = { map: null, marqueurs: new Map(), accident: null, lignes: null, moi: null };
+
+    // Distance routière estimée (formule de haversine × facteur de détour)
+    function distanceKm(h) {
+      const p = etat.positionAccident;
+      if (!p || h.lat == null || h.lng == null) return Infinity;
+      const rad = (d) => d * Math.PI / 180;
+      const dLat = rad(h.lat - p.lat);
+      const dLng = rad(h.lng - p.lng);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(p.lat)) * Math.cos(rad(h.lat)) * Math.sin(dLng / 2) ** 2;
+      return 6371 * 2 * Math.asin(Math.sqrt(a)) * FACTEUR_ROUTE;
+    }
+
+    function trajetTexte(h) {
+      const km = distanceKm(h);
+      if (!isFinite(km)) return '';
+      const minutes = Math.max(2, Math.round(km / VITESSE_MOYENNE_KMH * 60));
+      return `${km.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km · ~${minutes} min`;
+    }
+
+    function initialiserCarte() {
+      if (!window.L) {
+        $('carte').innerHTML = '<div class="carte-indispo">🗺️ Carte indisponible sans connexion Internet.<br>Les recommandations restent actives.</div>';
+        $('info-carte').textContent = '';
+        return;
+      }
+      carte.map = L.map('carte', { scrollWheelZoom: false }).setView(CENTRE_LOME, 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+      }).addTo(carte.map);
+      carte.lignes = L.layerGroup().addTo(carte.map);
+      carte.map.on('click', (e) => {
+        if (!etat.modeChoixPosition) return;
+        basculerModeChoix(false);
+        placerAccidentALaMain(e.latlng.lat, e.latlng.lng);
+      });
+      majCarte();
+      // Le GPS a pu répondre avant le chargement de la carte
+      if (etat.positionAccident) {
+        definirPositionAccident(etat.positionAccident);
+        carte.map.setView([etat.positionAccident.lat, etat.positionAccident.lng], 15);
+      }
+      if (etat.positionUtilisateur) afficherMarqueurUtilisateur();
+    }
+
+    /* ----- Position de l'utilisateur (GPS du téléphone ou du PC) ----- */
+    function afficherMarqueurUtilisateur() {
+      const p = etat.positionUtilisateur;
+      if (!carte.map || !p) return;
+      if (!carte.moi) {
+        carte.moi = L.marker([p.lat, p.lng], {
+          interactive: false,
+          icon: L.divIcon({ className: 'marqueur-moi', iconSize: [18, 18] })
+        }).addTo(carte.map);
+      }
+      carte.moi.setLatLng([p.lat, p.lng]);
+    }
+
+    function localiserUtilisateur(silencieux = false) {
+      const bouton = $('btn-ma-position');
+      if (!window.isSecureContext || !navigator.geolocation) {
+        $('info-carte').textContent = window.isSecureContext
+          ? 'Ce navigateur ne permet pas la géolocalisation : touchez « Changer de position ».'
+          : 'GPS bloqué sur cette adresse non sécurisée : ouvrez la version https:// ou placez l\'accident à la main.';
+        if (!silencieux) afficherToast('attention', 'Position indisponible', 'Utilisez « Changer de position » pour placer l\'accident sur la carte.');
+        return;
+      }
+      bouton.disabled = true;
+      bouton.textContent = '⏳ Localisation…';
+      $('info-carte').textContent = 'Recherche de votre position…';
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          bouton.disabled = false;
+          bouton.textContent = '📍 Ma position';
+          const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+          etat.positionUtilisateur = { lat, lng, precision: Math.round(accuracy) };
+          afficherMarqueurUtilisateur();
+          const saisie = champLieu.value.trim();
+          if (silencieux && saisie && saisie !== etat.lieuAuto) return;   // le témoin a déjà choisi un autre lieu
+          definirPositionAccident({ ...etat.positionUtilisateur, manuelle: false, gps: true });
+          carte.map?.flyTo([lat, lng], 16, { duration: 0.8 });
+          nommerPosition(lat, lng);
+          recalculerOrientation();
+        },
+        (erreur) => {
+          bouton.disabled = false;
+          bouton.textContent = '📍 Ma position';
+          const messages = {
+            1: 'Vous avez refusé l\'accès à votre position. Autorisez-le dans le navigateur ou placez l\'accident à la main.',
+            2: 'Position introuvable (GPS désactivé ?). Placez l\'accident à la main.',
+            3: 'La recherche de position a pris trop de temps. Réessayez ou placez l\'accident à la main.'
+          };
+          $('info-carte').textContent = messages[erreur.code] || messages[2];
+          if (!silencieux) afficherToast('attention', 'Position indisponible', messages[erreur.code] || messages[2]);
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+      );
+    }
+
+    function basculerModeChoix(actif = !etat.modeChoixPosition) {
+      etat.modeChoixPosition = actif && Boolean(carte.map);
+      const bouton = $('btn-changer-position');
+      bouton.setAttribute('aria-pressed', etat.modeChoixPosition);
+      bouton.textContent = etat.modeChoixPosition ? '✕ Annuler' : '✋ Changer de position';
+      $('carte').classList.toggle('mode-choix', etat.modeChoixPosition);
+      if (etat.modeChoixPosition) {
+        $('info-carte').innerHTML = '<span class="ok">👆 Touchez la carte à l\'endroit exact de l\'accident</span>';
+      } else if (etat.positionAccident) {
+        definirPositionAccident(etat.positionAccident);   // remet le message d'information
+      }
+    }
+
+    function placerAccidentALaMain(lat, lng) {
+      definirPositionAccident({ lat, lng, manuelle: true });
+      nommerPosition(lat, lng);
+      recalculerOrientation();
+    }
+
+    // Donne un nom lisible à la position et remplit le champ « Localisation » (sauf si le témoin l'a écrit lui-même)
+    async function nommerPosition(lat, lng) {
+      const saisie = champLieu.value.trim();
+      if (saisie && saisie !== etat.lieuAuto) return;
+
+      let nom = '';
+      try {
+        const url = etat.modeConnecte
+          ? `${API}/api/geocoder/inverse?lat=${lat}&lng=${lng}`
+          : `https://nominatim.openstreetmap.org/reverse?format=json&zoom=17&accept-language=fr&lat=${lat}&lon=${lng}`;
+        const r = await (await fetch(url, { signal: AbortSignal.timeout(8000) })).json();
+        if (etat.modeConnecte) nom = r.nom || '';
+        else if (r.address) nom = [r.address.road, r.address.suburb || r.address.neighbourhood].filter(Boolean).join(', ');
+      } catch { /* on garde seulement les coordonnées */ }
+
+      // Le témoin a pu déplacer l'accident ou écrire un lieu pendant la recherche
+      const p = etat.positionAccident;
+      if (!p || p.lat !== lat || p.lng !== lng) return;
+      if (champLieu.value.trim() && champLieu.value.trim() !== etat.lieuAuto) return;
+
+      const texte = (nom || `Position GPS ${lat.toFixed(5)}, ${lng.toFixed(5)}`).slice(0, 150);
+      champLieu.value = texte;
+      etat.lieuAuto = texte;
+      etat.lieuLocalise = texte;   // inutile de rechercher ce texte sur la carte
+      majBoutonEffacer();
+      marquerInvalide('champ-lieu', false);
+      $('info-lieux').textContent = p.gps ? 'Lieu rempli avec votre position GPS' : 'Lieu rempli depuis la carte';
+    }
+
+    function popupHopitalHTML(h) {
+      const s = STATUTS[h.statut];
+      const trajet = trajetTexte(h);
+      return `
+        <div class="popup-hopital">
+          <strong>${estRecommande(h.id) ? '✦ ' : ''}${echapperHTML(h.nom)}</strong>
+          <small>${TYPES[h.type].libelle} · ${s.emoji} ${s.libelle} · 🛏️ ${h.lits} lit${h.lits > 1 ? 's' : ''}${trajet ? `<br>🚑 ${trajet}` : ''}</small>
+          ${boutonAlerteHTML(h.id, '🚨 Alerter cet hôpital')}
+        </div>`;
+    }
+
+    // Met à jour les marqueurs (couleur = disponibilité, grand cercle bleu = recommandé) et les trajets
+    function majCarte() {
+      if (!carte.map) return;
+      const presents = new Set();
+
+      hopitaux.forEach(h => {
+        if (h.lat == null || h.lng == null) return;
+        presents.add(h.id);
+        const recommande = estRecommande(h.id);
+        const style = {
+          radius: recommande ? 12 : 8,
+          color: recommande ? '#0056B3' : '#FFFFFF',
+          weight: recommande ? 4 : 2,
+          fillColor: COULEURS_STATUT[h.statut],
+          fillOpacity: 0.95
+        };
+        let marqueur = carte.marqueurs.get(h.id);
+        if (!marqueur) {
+          marqueur = L.circleMarker([h.lat, h.lng], style).addTo(carte.map).bindPopup('');
+          carte.marqueurs.set(h.id, marqueur);
+        }
+        marqueur.setLatLng([h.lat, h.lng]).setStyle(style).setRadius(style.radius);
+        marqueur.setPopupContent(popupHopitalHTML(h));
+        marqueur.bindTooltip(h.nom, { direction: 'top', offset: [0, -8] });
+        if (recommande) marqueur.bringToFront();
+      });
+
+      // Hôpitaux supprimés par l'administrateur
+      carte.marqueurs.forEach((marqueur, id) => {
+        if (!presents.has(id)) { marqueur.remove(); carte.marqueurs.delete(id); }
+      });
+
+      carte.lignes.clearLayers();
+      const p = etat.positionAccident;
+      if (p && etat.analyse) {
+        etat.analyse.hopitaux.map(trouverHopital).forEach((h, i) => {
+          if (!h || h.lat == null) return;
+          L.polyline([[p.lat, p.lng], [h.lat, h.lng]], {
+            color: '#0056B3', weight: i === 0 ? 4 : 2.5, opacity: i === 0 ? 0.8 : 0.45, dashArray: i === 0 ? null : '6 8'
+          }).addTo(carte.lignes);
+        });
+      }
+    }
+
+    function definirPositionAccident(position) {
+      etat.positionAccident = position;
+      if (!carte.map) return;
+      if (!position) {
+        carte.accident?.remove();
+        carte.accident = null;
+        $('info-carte').textContent = 'Choisissez un lieu, ou touchez « Changer de position » pour placer l\'accident.';
+        return;
+      }
+      if (!carte.accident) {
+        carte.accident = L.marker([position.lat, position.lng], {
+          draggable: true,
+          zIndexOffset: 1000,
+          icon: L.divIcon({ className: 'marqueur-accident', html: '🚨', iconSize: [38, 38] })
+        }).addTo(carte.map).bindTooltip('Lieu de l\'accident (déplaçable)', { direction: 'top', offset: [0, -18] });
+        carte.accident.on('dragend', () => {
+          const { lat, lng } = carte.accident.getLatLng();
+          placerAccidentALaMain(lat, lng);
+        });
+      }
+      carte.accident.setLatLng([position.lat, position.lng]);
+      $('info-carte').innerHTML = position.gps
+        ? `<span class="ok">📍 Votre position GPS</span> (précision ~${position.precision} m) · glissez 🚨 si l'accident est ailleurs`
+        : position.manuelle
+          ? '<span class="ok">📍 Position placée à la main</span> (glissez 🚨 pour l\'ajuster)'
+          : '<span class="ok">📍 Lieu localisé sur la carte</span> (glissez 🚨 pour préciser)';
+    }
+
+    // Recherche la position GPS du lieu saisi (serveur, sinon OpenStreetMap directement)
+    async function localiserAccident(lieu) {
+      if (!lieu || lieu === etat.lieuLocalise) return;
+      etat.lieuLocalise = lieu;
+      try {
+        let position;
+        if (etat.modeConnecte) {
+          const reponse = await fetch(`${API}/api/geocoder?q=${encodeURIComponent(lieu)}`, { signal: AbortSignal.timeout(8000) });
+          if (!reponse.ok) throw new Error();
+          position = await reponse.json();
+        } else {
+          const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=tg&bounded=1'
+            + '&viewbox=1.05,6.32,1.40,6.08&q=' + encodeURIComponent(lieu + ', Lomé, Togo');
+          const [r] = await (await fetch(url, { signal: AbortSignal.timeout(8000) })).json();
+          if (!r) throw new Error();
+          position = { lat: Number(r.lat), lng: Number(r.lon) };
+        }
+        if (lieu !== champLieu.value.trim()) return;   // le témoin a changé de lieu entre-temps
+        definirPositionAccident({ lat: position.lat, lng: position.lng, manuelle: false });
+        carte.map?.flyTo([position.lat, position.lng], 14, { duration: 0.8 });
+      } catch {
+        const p = etat.positionAccident;
+        if (!p?.manuelle && !p?.gps) definirPositionAccident(null);
+        if (carte.map) $('info-carte').textContent = 'Lieu non trouvé sur la carte : touchez la carte pour placer l\'accident.';
+      }
+    }
+
+    // Après un déplacement de l'accident : nouvelles distances et nouvel ordre de recommandation
+    function recalculerOrientation() {
+      if (etat.analyse) {
+        etat.analyse = construireAnalyse(etat.analyse.base, etat.analyse.lieu);
+        if ($('liste-reco')) $('liste-reco').innerHTML = listeRecoHTML(etat.analyse);
+      }
+      afficherHopitaux();
+    }
+
+    function cadrerCarteSurAnalyse() {
+      const p = etat.positionAccident;
+      if (!carte.map || !p || !etat.analyse) return;
+      const points = [[p.lat, p.lng], ...etat.analyse.hopitaux.map(trouverHopital)
+        .filter(h => h && h.lat != null).map(h => [h.lat, h.lng])];
+      carte.map.flyToBounds(points, { padding: [40, 40], maxZoom: 14, duration: 0.8 });
+    }
+
+    /* =========================================================
+       12. ENVOI D'UNE ALERTE À UN HÔPITAL
+       ========================================================= */
+    const CLE_TEMOIN = 'urgence_temoin';
+    let reponseContact = null;
+
+    function contactMemorise() {
+      try { return JSON.parse(localStorage.getItem(CLE_TEMOIN)) || null; } catch { return null; }
+    }
+
+    // Ouvre la fenêtre des coordonnées ; renvoie {tel, nom} ou null si le témoin annule
+    function demanderContact(h) {
+      const memo = contactMemorise();
+      $('temoin-tel').value = memo?.tel ? formaterTel(memo.tel) : '';
+      $('temoin-nom').value = memo?.nom || '';
+      $('sous-titre-contact').textContent = `Alerte pour ${h.nom}. Les secours vous rappelleront si besoin pour trouver la victime.`;
+      marquerInvalide('champ-tel', false);
+      $('fenetre-contact').showModal();
+      (memo?.tel ? document.querySelector('#fenetre-contact .btn-confirmer') : $('temoin-tel')).focus();
+      return new Promise(resolve => { reponseContact = resolve; });
+    }
+
+    function fermerContact(contact) {
+      const repondre = reponseContact;
+      reponseContact = null;
+      if ($('fenetre-contact').open) $('fenetre-contact').close();
+      repondre?.(contact);
+    }
+
+    $('form-contact').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const tel = numeroTogolais($('temoin-tel').value);
+      if (!tel) {
+        marquerInvalide('champ-tel', true);
+        $('temoin-tel').focus();
+        return;
+      }
+      const contact = { tel, nom: $('temoin-nom').value.trim().replace(/\s+/g, ' ') || null };
+      try { localStorage.setItem(CLE_TEMOIN, JSON.stringify(contact)); } catch { /* navigation privée */ }
+      fermerContact(contact);
+    });
+    $('btn-annuler-contact').addEventListener('click', () => fermerContact(null));
+    $('fenetre-contact').addEventListener('cancel', (e) => { e.preventDefault(); fermerContact(null); });
+    $('temoin-tel').addEventListener('input', () => marquerInvalide('champ-tel', false));
+
+    async function envoyerAlerte(id) {
+      const h = trouverHopital(id);
+      const lieu = champLieu.value.trim() || (etat.analyse && etat.analyse.lieu) || '';
+
+      if (!lieu) {
+        marquerInvalide('champ-lieu', true);
+        champLieu.focus();
+        afficherToast('attention', 'Localisation manquante', 'Indiquez où se trouve la victime avant d\'envoyer l\'alerte.');
+        return;
+      }
+      if (etat.envoisEnCours.has(id) || etat.alertesEnvoyees.has(id)) return;
+
+      // En mode connecté, le serveur exige une description (au moins 10 caractères)
+      const description = champDescription.value.trim();
+      if (etat.modeConnecte && description.length < 10) {
+        marquerInvalide('champ-description', true);
+        champDescription.focus();
+        afficherToast('attention', 'Description manquante', 'Décrivez l\'état du patient pour que l\'hôpital se prépare.');
+        return;
+      }
+
+      let contact = null;
+      if (etat.modeConnecte) {
+        contact = await demanderContact(h);
+        if (!contact || etat.envoisEnCours.has(id) || etat.alertesEnvoyees.has(id)) return;
+      }
+
+      etat.envoisEnCours.add(id);
+      afficherHopitaux();
+
+      const terminerEnvoi = () => {
+        etat.envoisEnCours.delete(id);
+        const minuteur = setTimeout(() => {
+          etat.alertesEnvoyees.delete(id);
+          afficherHopitaux();
+        }, DUREE_ETAT_ENVOYE_MS);
+        etat.alertesEnvoyees.set(id, minuteur);
+        afficherHopitaux();
+      };
+
+      if (etat.modeConnecte) {
+        envoyerAlerteAuServeur(h, lieu, description, contact, terminerEnvoi);
+        return;
+      }
+
+      // Mode démo : simulation du délai réseau
+      setTimeout(() => {
+        terminerEnvoi();
+        ajouterAuJournal({ hopital: h.nom, lieu, statut: 'simulee' });
+
+        if (h.statut === 'sature') {
+          afficherToast('critique', `Alerte transmise – ${h.nom} saturé`,
+            `L'hôpital a reçu l'alerte pour ${lieu}, mais il n'a plus de lit libre. Une réorientation est conseillée.`);
+        } else {
+          afficherToast('succes', 'Alerte transmise avec succès ✅',
+            `${h.nom} a bien reçu l'alerte. Victime signalée à : ${lieu}. L'équipe d'accueil se prépare.`);
+        }
+      }, 1200);
+    }
+
+    // Mode connecté : l'alerte est enregistrée par le serveur et transmise à l'hôpital
+    async function envoyerAlerteAuServeur(h, lieu, description, contact, terminerEnvoi) {
+      const analyse = etat.analyse;
+      try {
+        const reponse = await fetch(API + '/api/alertes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            hopital_id: h.id,
+            lieu,
+            description,
+            diagnostic: analyse ? analyse.diagnostic : null,
+            gravite: analyse ? analyse.gravite : 'urgent',
+            lat: etat.positionAccident?.lat ?? null,
+            lng: etat.positionAccident?.lng ?? null,
+            temoin_tel: contact.tel,
+            temoin_nom: contact.nom
+          })
+        });
+        const alerte = await reponse.json();
+        if (!reponse.ok) {
+          const detail = typeof alerte.detail === 'string' ? alerte.detail
+            : Array.isArray(alerte.detail) ? alerte.detail[0]?.msg?.replace(/^Value error, /, '') : null;
+          throw new Error(detail || 'Erreur du serveur.');
+        }
+
+        terminerEnvoi();
+        ajouterAuJournal({ id: alerte.id, hopital: h.nom, lieu, statut: 'envoyee' });
+        commencerSuivi(alerte, lieu);
+        afficherToast(h.statut === 'sature' ? 'critique' : 'succes',
+          h.statut === 'sature' ? `Alerte transmise – ${h.nom} saturé` : 'Alerte transmise ✅',
+          h.statut === 'sature'
+            ? 'Cet hôpital n\'a plus de lit libre : sa réponse risque d\'être un refus.'
+            : `${h.nom} a reçu l'alerte. Gardez votre téléphone (${formaterTel(contact.tel)}) près de vous.`);
+      } catch (err) {
+        etat.envoisEnCours.delete(h.id);
+        afficherHopitaux();
+        afficherToast('critique', 'Échec de l\'envoi', `${err.message} Appelez directement les secours.`);
+      }
+    }
+
+    const LIBELLES_JOURNAL = {
+      simulee:  { texte: 'Simulée',            classe: '' },
+      envoyee:  { texte: '⏳ En attente',       classe: 'attente' },
+      acceptee: { texte: '✓ Acceptée',          classe: 'acceptee' },
+      refusee:  { texte: '✕ Refusée',           classe: 'refusee' }
+    };
+
+    function ajouterAuJournal(entree) {
+      etat.journal.unshift({ ...entree, heure: new Date() });
+      etat.journal = etat.journal.slice(0, 8);
+      afficherJournal();
+    }
+
+    // Les anciennes alertes gardaient les coordonnées dans le nom du lieu : « Agoè (GPS 6.2, 1.1) »
+    const lieuLisible = (lieu) => (lieu || '').replace(/\s*\(GPS [^)]*\)/, '') || lieu;
+
+    function afficherJournal() {
+      $('journal').innerHTML = etat.journal.map(entree => {
+        const statut = LIBELLES_JOURNAL[entree.statut];
+        return `
+          <li>
+            <span>🚨 <strong>${echapperHTML(entree.hopital)}</strong> · ${echapperHTML(lieuLisible(entree.lieu))}
+              ${entree.motif ? `<br><small class="motif-refus">Motif : ${echapperHTML(entree.motif)}</small>` : ''}
+            </span>
+            <span class="journal-droite">
+              ${statut.classe ? `<span class="etat-journal ${statut.classe}">${statut.texte}</span>` : ''}
+              <time>${formaterHeure(entree.heure, true)}</time>
+            </span>
+          </li>`;
+      }).join('');
+    }
+
+    // Réponse d'un hôpital à une alerte envoyée depuis ce navigateur
+    function traiterReponseHopital(alerte) {
+      majSuiviReponse(alerte);
+      const entree = etat.journal.find(e => e.id === alerte.id);
+      if (!entree || entree.statut === alerte.statut) return;
+      entree.statut = alerte.statut;
+      entree.motif = alerte.motif;
+      afficherJournal();
+
+      if (alerte.statut === 'acceptee') {
+        afficherToast('succes', `${alerte.hopital_nom} accepte le patient ✅`,
+          `L'équipe des urgences se prépare à recevoir la victime de ${lieuLisible(entree.lieu)}.`, 8000);
+      } else if (alerte.statut === 'refusee') {
+        afficherToast('critique', `${alerte.hopital_nom} ne peut pas recevoir le patient`,
+          `${alerte.motif ? 'Motif : ' + alerte.motif + '. ' : ''}Envoyez l'alerte à un autre établissement.`, 9000);
+      }
+    }
+
+    /* =========================================================
+       13. SIMULATION DU TEMPS RÉEL (toutes les 30 secondes)
+       ========================================================= */
+    function tirerStatutAleatoire() {
+      const r = Math.random();
+      if (r < 0.5) return 'disponible';
+      if (r < 0.8) return 'limite';
+      return 'sature';
+    }
+
+    function litsPourStatut(statut) {
+      if (statut === 'disponible') return 4 + Math.floor(Math.random() * 7); // 4 à 10
+      if (statut === 'limite') return 1 + Math.floor(Math.random() * 3);     // 1 à 3
+      return 0;
+    }
+
+    function miseAJourTempsReel() {
+      const changements = new Set();
+      const devenusSatures = [];
+
+      hopitaux.forEach(h => {
+        const nouveauStatut = tirerStatutAleatoire();
+        if (nouveauStatut !== h.statut) {
+          changements.add(h.id);
+          if (nouveauStatut === 'sature' && estRecommande(h.id)) devenusSatures.push(h);
+        }
+        h.statut = nouveauStatut;
+        h.lits = litsPourStatut(nouveauStatut);
+        h.majA = new Date();
+      });
+
+      afficherHopitaux(changements);
+
+      if (devenusSatures.length > 0) {
+        devenusSatures.forEach(h => afficherToast('critique', `${h.nom} vient de saturer`,
+          'Cet hôpital recommandé n\'a plus de place : relancez l\'analyse pour une nouvelle orientation.'));
+      } else {
+        afficherToast('info', 'Statuts actualisés',
+          changements.size > 0
+            ? `${changements.size} hôpital(aux) ont changé de disponibilité.`
+            : 'Aucun changement de disponibilité.', 3000);
+      }
+    }
+
+    // Boucle d'une seconde : horloge + compte à rebours
+    function tic() {
+      $('horloge').textContent = formaterHeure(new Date(), true);
+      if (etat.modeConnecte) return;   // les vraies mises à jour arrivent par le serveur
+
+      etat.secondesRestantes--;
+      if (etat.secondesRestantes <= 0) {
+        miseAJourTempsReel();
+        etat.secondesRestantes = INTERVALLE_TEMPS_REEL;
+      }
+      $('compte-a-rebours').textContent = etat.secondesRestantes + ' s';
+      $('barre-refresh').style.width = (etat.secondesRestantes / INTERVALLE_TEMPS_REEL * 100) + '%';
+    }
+
+    /* =========================================================
+       14 bis. RECHERCHE DES LIEUX DE L'ACCIDENT
+       ========================================================= */
+    const listeLieux = $('liste-lieux');
+    const GROUPES_LIEUX = ['Quartiers', 'Carrefours & repères', 'Axes routiers'];
+
+    // Met en gras la partie du nom qui correspond à la recherche
+    function surligner(nom, q) {
+      const n = normaliser(nom);
+      const i = q ? n.indexOf(q) : -1;
+      if (i < 0 || n.length !== nom.length) return echapperHTML(nom);
+      return echapperHTML(nom.slice(0, i)) +
+        '<mark>' + echapperHTML(nom.slice(i, i + q.length)) + '</mark>' +
+        echapperHTML(nom.slice(i + q.length));
+    }
+
+    function afficherSuggestions() {
+      const saisie = champLieu.value.trim();
+      const q = normaliser(saisie);
+      let html = '';
+      etat.suggestions = [];
+
+      GROUPES_LIEUX.forEach(groupe => {
+        const trouves = LIEUX
+          .filter(l => l.groupe === groupe && normaliser(l.nom).includes(q))
+          // Les lieux qui commencent par la saisie passent en premier
+          .sort((a, b) => normaliser(b.nom).startsWith(q) - normaliser(a.nom).startsWith(q)
+                          || a.nom.localeCompare(b.nom, 'fr'));
+        if (!trouves.length) return;
+
+        html += `<li class="groupe" role="presentation">${groupe} · ${trouves.length}</li>`;
+        trouves.forEach(l => {
+          const i = etat.suggestions.length;
+          etat.suggestions.push(l.nom);
+          html += `<li class="option" role="option" id="lieu-opt-${i}" data-index="${i}" aria-selected="false">${surligner(l.nom, q)}</li>`;
+        });
+      });
+
+      if (!etat.suggestions.length) {
+        html = `<li class="vide">Aucun lieu trouvé. « ${echapperHTML(saisie)} » sera utilisé tel quel.</li>`;
+      }
+
+      listeLieux.innerHTML = html;
+      listeLieux.hidden = false;
+      champLieu.setAttribute('aria-expanded', 'true');
+      etat.indexSuggestion = -1;
+
+      $('info-lieux').textContent = q
+        ? `${etat.suggestions.length} lieu${etat.suggestions.length > 1 ? 'x' : ''} trouvé${etat.suggestions.length > 1 ? 's' : ''}`
+        : `${LIEUX.length} lieux disponibles`;
+    }
+
+    function fermerSuggestions() {
+      listeLieux.hidden = true;
+      champLieu.setAttribute('aria-expanded', 'false');
+      champLieu.removeAttribute('aria-activedescendant');
+      etat.indexSuggestion = -1;
+    }
+
+    function surbrillanceSuggestion(index) {
+      const options = listeLieux.querySelectorAll('.option');
+      if (!options.length) return;
+      etat.indexSuggestion = (index + options.length) % options.length;
+      options.forEach((opt, i) => {
+        const active = i === etat.indexSuggestion;
+        opt.classList.toggle('active', active);
+        opt.setAttribute('aria-selected', active);
+        if (active) {
+          opt.scrollIntoView({ block: 'nearest' });
+          champLieu.setAttribute('aria-activedescendant', opt.id);
+        }
+      });
+    }
+
+    function choisirLieu(nom) {
+      champLieu.value = nom;
+      majBoutonEffacer();
+      marquerInvalide('champ-lieu', false);
+      fermerSuggestions();
+      $('info-lieux').textContent = `Lieu sélectionné : ${nom}`;
+      localiserAccident(nom).then(recalculerOrientation);
+    }
+
+    function majBoutonEffacer() {
+      $('effacer-lieu').hidden = champLieu.value.length === 0;
+    }
+
+    /* =========================================================
+       15. ÉCOUTEURS D'ÉVÉNEMENTS
+       ========================================================= */
+    formulaire.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (validerFormulaire()) lancerAnalyse();
+    });
+
+    // Compteur de caractères + retrait de l'erreur pendant la saisie
+    champDescription.addEventListener('input', () => {
+      $('compteur').textContent = `${champDescription.value.length} / 500`;
+      if (champDescription.value.trim().length >= 10) marquerInvalide('champ-description', false);
+      majVisibiliteCarte();
+    });
+    champLieu.addEventListener('input', () => {
+      if (champLieu.value.trim()) marquerInvalide('champ-lieu', false);
+      majBoutonEffacer();
+      afficherSuggestions();
+      majVisibiliteCarte();
+    });
+    champLieu.addEventListener('focus', afficherSuggestions);
+
+    // Navigation au clavier dans les suggestions (flèches, Entrée, Échap)
+    champLieu.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (listeLieux.hidden) afficherSuggestions();
+        surbrillanceSuggestion(etat.indexSuggestion + (e.key === 'ArrowDown' ? 1 : -1));
+      } else if (e.key === 'Enter' && !listeLieux.hidden) {
+        e.preventDefault();
+        if (etat.indexSuggestion >= 0) choisirLieu(etat.suggestions[etat.indexSuggestion]);
+        else fermerSuggestions();
+      } else if (e.key === 'Escape') {
+        fermerSuggestions();
+      }
+    });
+
+    // mousedown + preventDefault : le champ garde le focus pendant le clic
+    listeLieux.addEventListener('mousedown', (e) => e.preventDefault());
+    listeLieux.addEventListener('click', (e) => {
+      const option = e.target.closest('.option');
+      if (option) choisirLieu(etat.suggestions[Number(option.dataset.index)]);
+    });
+
+    $('effacer-lieu').addEventListener('click', () => {
+      champLieu.value = '';
+      majBoutonEffacer();
+      champLieu.focus();
+      afficherSuggestions();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.combobox')) fermerSuggestions();
+    });
+
+    // Recherche et filtres du tableau de bord des hôpitaux
+    $('recherche-hopital').addEventListener('input', (e) => {
+      etat.rechercheHopital = e.target.value;
+      afficherHopitaux();
+    });
+    document.querySelectorAll('.segment').forEach(bouton => {
+      bouton.addEventListener('click', () => {
+        document.querySelectorAll('.segment').forEach(b => b.classList.toggle('actif', b === bouton));
+        etat.filtreType = bouton.dataset.type;
+        afficherHopitaux();
+      });
+    });
+
+    // Boutons d'exemples : remplissent automatiquement le formulaire
+    document.querySelectorAll('.chip-exemple').forEach(chip => {
+      chip.addEventListener('click', () => {
+        champLieu.value = chip.dataset.lieu;
+        champDescription.value = chip.dataset.texte;
+        champDescription.dispatchEvent(new Event('input'));
+        marquerInvalide('champ-lieu', false);
+        majBoutonEffacer();
+        fermerSuggestions();
+        $('info-lieux').textContent = `Lieu de l'exemple : ${chip.dataset.lieu}`;
+        localiserAccident(chip.dataset.lieu).then(recalculerOrientation);
+        majVisibiliteCarte();
+      });
+    });
+
+    // Délégation : un seul écouteur gère tous les boutons d'alerte et "Nouveau signalement"
+    document.addEventListener('click', (e) => {
+      const boutonAlerte = e.target.closest('[data-alerte]');
+      if (boutonAlerte && !boutonAlerte.disabled) {
+        envoyerAlerte(boutonAlerte.dataset.alerte);
+        return;
+      }
+      if (e.target.closest('#btn-nouveau')) reinitialiser();
+    });
+
+    /* =========================================================
+       14 ter. SUIVI DE L'ALERTE ET DE L'AMBULANCE
+       Le serveur remet un code secret au témoin : lui seul reçoit
+       la position de l'ambulance. Le suivi survit à un rechargement.
+       ========================================================= */
+    const CLE_SUIVIS = 'urgence_suivis';
+    const DUREE_SUIVI_MS = 12 * 3600 * 1000;
+    const suivis = new Map();   // id de l'alerte -> { token, hopital, lieu, statut, motif, accident, hopitalPos, ambulance, trajet }
+    const carteSuivi = { map: null, alerteId: null, ambulance: null, trajet: null };
+
+    function sauverSuivis() {
+      const liste = [...suivis.values()].map(({ id, token, hopital, lieu, cree }) => ({ id, token, hopital, lieu, cree }));
+      localStorage.setItem(CLE_SUIVIS, JSON.stringify(liste));
+    }
+
+    function abonner(token) {
+      if (etat.ws?.readyState === 1) etat.ws.send(JSON.stringify({ suivre: token }));
+    }
+
+    function commencerSuivi(alerte, lieu) {
+      if (!alerte.suivi_token) return;
+      suivis.set(alerte.id, {
+        id: alerte.id, token: alerte.suivi_token, hopital: alerte.hopital_nom, lieu,
+        statut: alerte.statut, motif: null, cree: Date.now(), ambulance: null, trajet: null
+      });
+      sauverSuivis();
+      abonner(alerte.suivi_token);
+      afficherSuivi();
+    }
+
+    // Recharge l'état complet d'un suivi depuis le serveur (après rechargement ou coupure réseau)
+    async function chargerSuivi(s) {
+      const reponse = await fetch(`${API}/api/suivi/${encodeURIComponent(s.token)}`);
+      if (reponse.status === 404) { suivis.delete(s.id); return; }
+      if (!reponse.ok) return;
+      const d = await reponse.json();
+      Object.assign(s, {
+        statut: d.alerte.statut, motif: d.alerte.motif, hopital: d.alerte.hopital_nom,
+        fausseAlerte: Boolean(d.alerte.fausse_alerte), accident: d.accident, hopitalPos: d.hopital, ambulance: d.ambulance, trajet: d.trajet || s.trajet,
+        ambulanceRecueA: Date.now(), messages: d.messages || []
+      });
+    }
+
+    async function restaurerSuivis() {
+      let liste = [];
+      try { liste = JSON.parse(localStorage.getItem(CLE_SUIVIS) || '[]'); } catch { /* ignoré */ }
+      liste.filter(s => Date.now() - s.cree < DUREE_SUIVI_MS).forEach(s => suivis.set(s.id, { ...s }));
+      await rafraichirSuivis();
+      suivis.forEach(s => {
+        abonner(s.token);
+        if (!etat.journal.some(e => e.id === s.id)) {
+          etat.journal.push({ id: s.id, hopital: s.hopital, lieu: s.lieu, statut: s.statut, motif: s.motif, heure: new Date(s.cree) });
+        }
+      });
+      if (suivis.size) afficherJournal();
+    }
+
+    async function rafraichirSuivis() {
+      await Promise.all([...suivis.values()].map(s => chargerSuivi(s).catch(() => {})));
+      sauverSuivis();
+      afficherSuivi();
+    }
+
+    async function majSuiviReponse(alerte) {
+      const s = suivis.get(alerte.id);
+      if (!s || (s.statut === alerte.statut && s.fausseAlerte === Boolean(alerte.fausse_alerte))) return;
+      s.statut = alerte.statut;
+      s.motif = alerte.motif;
+      s.fausseAlerte = Boolean(alerte.fausse_alerte);
+      if (alerte.statut === 'acceptee') await chargerSuivi(s).catch(() => {});
+      afficherSuivi();
+    }
+
+    function majSuiviAmbulance(message) {
+      const s = suivis.get(message.alerte_id);
+      if (!s) return;
+      const etaitTerminee = s.ambulance?.statut;
+      s.ambulance = message.ambulance;
+      s.ambulanceRecueA = Date.now();
+      if (message.trajet) s.trajet = message.trajet;
+      if (suiviPrincipal() !== s) return;
+
+      // Changement d'étape : on redessine la carte de suivi, sinon on déplace simplement l'ambulance
+      if (etaitTerminee !== s.ambulance?.statut || message.trajet || carteSuivi.alerteId !== s.id) {
+        afficherSuivi();
+        if (s.ambulance?.statut === 'sur_place' && etaitTerminee === 'en_route') {
+          afficherToast('succes', 'L\'ambulance est arrivée 🚑', 'Les secours sont sur le lieu de l\'accident.', 8000);
+        }
+      } else {
+        deplacerAmbulance(s);
+      }
+    }
+
+    // Suivi affiché en priorité : ambulance en cours > réponse attendue > refus récent
+    function suiviPrincipal() {
+      const liste = [...suivis.values()].sort((a, b) => b.cree - a.cree);
+      return liste.find(s => s.statut === 'acceptee' && s.ambulance?.statut !== 'terminee')
+        || liste.find(s => s.statut === 'envoyee')
+        || liste.find(s => !s.masque);
+    }
+
+    const ETAPES = [['acceptee', 'Acceptée'], ['en_route', 'En route'], ['sur_place', 'Sur place'], ['terminee', 'À l\'hôpital']];
+
+    function etapesHTML(s) {
+      const rang = { acceptee: 0, en_route: 1, sur_place: 2, terminee: 3 }[s.ambulance?.statut || 'acceptee'];
+      return `<ol class="etapes-suivi">${ETAPES.map(([, libelle], i) =>
+        `<li class="${i < rang || (i === rang && rang === 3) ? 'fait' : i === rang ? 'actif' : ''}">${libelle}</li>`).join('')}</ol>`;
+    }
+
+    function texteEta(s) {
+      const a = s.ambulance;
+      if (!a) return { titre: 'Ambulance en préparation…', detail: '' };
+      if (a.statut === 'sur_place') return { titre: '📍 Ambulance sur place', detail: 'Les secours prennent en charge la victime.' };
+      if (a.statut === 'terminee') return { titre: '🏥 Patient arrivé à l\'hôpital', detail: `${s.hopital} a pris le relais.` };
+      const ecoule = (Date.now() - (s.ambulanceRecueA || Date.now())) / 1000;
+      const restant = Math.max(0, Math.round((a.eta_s || 0) - ecoule));
+      const minutes = Math.floor(restant / 60);
+      return {
+        titre: restant > 0 ? `🚑 Arrivée dans ${minutes ? minutes + ' min ' : ''}${String(restant % 60).padStart(2, '0')} s` : '🚑 Arrivée imminente',
+        detail: a.mode === 'simulation' ? '🧪 Position simulée (démonstration)' : '📡 GPS de l\'ambulance en direct'
+      };
+    }
+
+    function afficherSuivi() {
+      afficherBandeauSuivi();
+      afficherDiscussion();
+    }
+
+    /* ----- Discussion avec l'ambulance et l'hôpital ----- */
+    const AUTEURS_DISCUSSION = { temoin: 'Vous', ambulance: '🚑 Ambulancier', hopital: '🏥 Hôpital' };
+    let discussionAffichee = null;
+
+    function afficherDiscussion() {
+      const s = suiviPrincipal();
+      const visible = s?.statut === 'acceptee';
+      $('zone-discussion').hidden = !visible;
+      if (!visible) return;
+      const ouverte = s.ambulance?.statut !== 'terminee';
+      $('disc-ouverte').hidden = !ouverte;
+      $('disc-fermee').hidden = ouverte;
+      if (discussionAffichee !== s.id) $('disc-texte').value = '';
+      discussionAffichee = s.id;
+
+      const messages = s.messages || [];
+      const liste = $('disc-liste');
+      liste.innerHTML = messages.length ? messages.map(m => `
+        <li class="disc-msg ${m.auteur === 'temoin' ? 'moi' : ''} ${m.grave ? 'grave' : ''}">
+          <span class="disc-auteur">${AUTEURS_DISCUSSION[m.auteur]} · ${new Date(m.cree_a).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>${echapperHTML(m.texte)}
+        </li>`).join('')
+        : '<li class="disc-vide">Aucun message. Écrivez si l\'état de la victime change ou pour guider l\'ambulance.</li>';
+      liste.scrollTop = liste.scrollHeight;
+    }
+
+    function recevoirMessage(alerteId, message) {
+      const s = suivis.get(alerteId);
+      if (!s) return;
+      s.messages ??= [];
+      if (s.messages.some(m => m.id === message.id)) return;
+      s.messages.push(message);
+      if (suiviPrincipal() === s) afficherDiscussion();
+      if (message.auteur !== 'temoin') {
+        navigator.vibrate?.(200);
+        afficherToast('info', message.auteur === 'ambulance' ? '🚑 Message de l\'ambulancier' : '🏥 Message de l\'hôpital', message.texte, 8000);
+      }
+    }
+
+    async function envoyerMessageDiscussion(texte) {
+      const s = suiviPrincipal();
+      texte = texte.trim();
+      if (!s || !texte) return false;
+      try {
+        const reponse = await fetch(`${API}/api/suivi/${encodeURIComponent(s.token)}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texte })
+        });
+        const donnees = await reponse.json();
+        if (!reponse.ok) throw new Error(typeof donnees.detail === 'string' ? donnees.detail : 'Message non envoyé.');
+        recevoirMessage(s.id, donnees);
+        return true;
+      } catch (err) {
+        afficherToast('critique', 'Message non envoyé', `${err.message} Appelez l'hôpital si c'est urgent.`);
+        return false;
+      }
+    }
+
+    $('disc-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (await envoyerMessageDiscussion($('disc-texte').value)) $('disc-texte').value = '';
+    });
+    $('disc-rapides').addEventListener('click', (e) => {
+      const bouton = e.target.closest('[data-rapide]');
+      if (bouton) envoyerMessageDiscussion(bouton.dataset.rapide);
+    });
+
+    function suiviAmbulanceEnCours() {
+      const s = suiviPrincipal();
+      return Boolean(s?.accident && s.statut === 'acceptee' && s.ambulance?.statut !== 'terminee');
+    }
+
+    // Commencé dès qu'une description, un lieu choisi par le témoin ou une analyse existe
+    function nouveauSignalementCommence() {
+      const lieu = champLieu.value.trim();
+      return Boolean(etat.analyse || champDescription.value.trim() || (lieu && lieu !== etat.lieuAuto));
+    }
+
+    // Une seule carte à la fois : pendant le trajet de l'ambulance, la carte de suivi remplace la grande carte,
+    // sauf si le témoin prépare un nouveau signalement (il doit pouvoir placer ce nouvel accident)
+    function majVisibiliteCarte() {
+      const zoneCarte = document.querySelector('.carte-zone');
+      const suiviEnCours = suiviAmbulanceEnCours();
+      const masquer = suiviEnCours && !nouveauSignalementCommence();
+      if (zoneCarte.hidden !== masquer) {
+        zoneCarte.hidden = masquer;
+        if (!masquer) setTimeout(() => carte.map?.invalidateSize(), 0);
+      }
+      const note = $('note-nouveau');
+      if (note) note.hidden = !(suiviEnCours && etat.analyse);
+    }
+
+    function afficherBandeauSuivi() {
+      const zone = $('zone-suivi');
+      const s = suiviPrincipal();
+      carteSuivi.map?.remove();
+      Object.assign(carteSuivi, { map: null, alerteId: null, ambulance: null, trajet: null });
+
+      majVisibiliteCarte();
+
+      if (!s) { zone.hidden = true; return; }
+
+      const autres = suivis.size - 1;
+      const autresHTML = autres > 0 ? `<p class="suivi-autres">+ ${autres} autre${autres > 1 ? 's' : ''} alerte${autres > 1 ? 's' : ''} dans le journal ci-dessous.</p>` : '';
+      zone.hidden = false;
+      zone.className = 'suivi ' + (s.statut === 'envoyee' ? 'attente' : s.statut);
+
+      if (s.statut === 'envoyee') {
+        zone.innerHTML = `
+          <div class="suivi-titre">
+            <span class="mini-spinner" aria-hidden="true"></span>
+            <div><strong>${t('alerteEnvoyee', { hopital: echapperHTML(s.hopital) })}</strong>
+              <p>${t('attenteReponse')}</p></div>
+          </div>${autresHTML}`;
+        return;
+      }
+
+      if (s.statut === 'refusee') {
+        zone.innerHTML = `
+          <div class="suivi-titre">
+            <span class="icone" aria-hidden="true">✕</span>
+            <div><strong>${t('refuse', { hopital: echapperHTML(s.hopital) })}</strong>
+              <p>${s.motif ? t('motif') + ' ' + echapperHTML(s.motif) + '. ' : ''}${t('alerterAutre')}</p></div>
+          </div>
+          <div class="suivi-actions">
+            <button type="button" class="principal" data-suivi="autre">🚨 ${t('btnAlerterAutre')}</button>
+            <button type="button" data-suivi="masquer" data-id="${s.id}">${t('masquer')}</button>
+          </div>${autresHTML}`;
+        return;
+      }
+
+      if (s.fausseAlerte) {
+        zone.className = 'suivi refusee';
+        zone.innerHTML = `
+          <div class="suivi-titre">
+            <span class="icone" aria-hidden="true">⚠</span>
+            <div><strong>${t('fausseAlerteTitre')}</strong>
+              <p>${t('fausseAlerteTexte')}</p></div>
+          </div>
+          <div class="suivi-actions">
+            <button type="button" data-suivi="masquer" data-id="${s.id}">${t('masquer')}</button>
+          </div>${autresHTML}`;
+        return;
+      }
+
+      // Acceptée : confirmation + suivi de l'ambulance
+      const eta = texteEta(s);
+      const itineraire = s.hopitalPos?.lat != null
+        ? `<a href="https://www.google.com/maps/dir/?api=1&destination=${s.hopitalPos.lat},${s.hopitalPos.lng}" target="_blank" rel="noopener">🧭 ${t('itineraire')}</a>` : '';
+      const appelHopital = s.hopitalPos?.telephone
+        ? `<a href="tel:${echapperHTML(s.hopitalPos.telephone)}">📞 ${t('appelerHopital')}</a>` : '';
+      const vehicule = s.ambulance?.vehicule
+        ? ` · 🚑 ${echapperHTML(s.ambulance.vehicule)}${s.ambulance.plaque ? ` (${echapperHTML(s.ambulance.plaque)})` : ''}` : '';
+      const sansPosition = !s.accident
+        ? '<p class="suivi-autres">Position de l\'accident inconnue : le suivi de l\'ambulance n\'est pas disponible. Appelez l\'hôpital si besoin.</p>' : '';
+      zone.innerHTML = `
+        <div class="suivi-titre">
+          <span class="icone" aria-hidden="true">✅</span>
+          <div><strong>${t('accepte', { hopital: echapperHTML(s.hopital) })}</strong>
+            <p>${t('interventionA')} <strong>${echapperHTML(lieuLisible(s.lieu))}</strong>${vehicule} · ${t('equipePrepare')}</p></div>
+        </div>
+        ${s.accident ? `
+          ${etapesHTML(s)}
+          <div class="eta-suivi"><strong id="eta-titre">${eta.titre}</strong><span id="eta-detail">${eta.detail}</span></div>
+          <div class="carte-suivi" id="carte-suivi" role="region" aria-label="Position de l'ambulance"></div>` : sansPosition}
+        <div class="suivi-actions">
+          ${appelHopital}
+          ${itineraire}
+          ${s.ambulance?.statut === 'terminee' ? `<button type="button" data-suivi="masquer" data-id="${s.id}">Terminer le suivi</button>` : ''}
+        </div>${autresHTML}`;
+
+      if (s.accident) creerCarteSuivi(s);
+    }
+
+    function creerCarteSuivi(s) {
+      if (!window.L) {
+        $('carte-suivi').innerHTML = '<div class="carte-indispo">🗺️ Carte indisponible sans Internet.</div>';
+        return;
+      }
+      const map = L.map('carte-suivi', { zoomControl: false, attributionControl: false, scrollWheelZoom: false });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+      Object.assign(carteSuivi, { map, alerteId: s.id });
+
+      const accident = [s.accident.lat, s.accident.lng];
+      L.marker(accident, { icon: L.divIcon({ className: 'marqueur-accident', html: '🚨', iconSize: [38, 38] }) })
+        .addTo(map).bindTooltip('Lieu de l\'accident');
+      const points = [accident];
+      if (s.hopitalPos?.lat != null) {
+        const hopital = [s.hopitalPos.lat, s.hopitalPos.lng];
+        L.marker(hopital, { icon: L.divIcon({ className: 'marqueur-hopital', html: '🏥', iconSize: [30, 30] }) })
+          .addTo(map).bindTooltip(s.hopital);
+        points.push(hopital);
+      }
+      if (s.trajet?.length) {
+        carteSuivi.trajet = L.polyline(s.trajet, { color: '#0056B3', weight: 5, opacity: 0.55 }).addTo(map);
+        points.push(...s.trajet);
+      }
+      if (s.ambulance?.lat != null) {
+        carteSuivi.ambulance = L.marker([s.ambulance.lat, s.ambulance.lng], {
+          zIndexOffset: 1000,
+          icon: L.divIcon({ className: 'marqueur-ambulance', html: '🚑', iconSize: [36, 36] })
+        }).addTo(map).bindTooltip('Ambulance');
+        points.push([s.ambulance.lat, s.ambulance.lng]);
+      }
+      map.fitBounds(points, { padding: [30, 30], maxZoom: 16 });
+    }
+
+    function deplacerAmbulance(s) {
+      if (carteSuivi.alerteId !== s.id || !carteSuivi.map || s.ambulance?.lat == null) return;
+      const position = [s.ambulance.lat, s.ambulance.lng];
+      if (carteSuivi.ambulance) carteSuivi.ambulance.setLatLng(position);
+      else afficherSuivi();
+    }
+
+    // Compte à rebours de l'arrivée, mis à jour chaque seconde entre deux positions
+    setInterval(() => {
+      const s = suivis.get(carteSuivi.alerteId);
+      if (!s || !$('eta-titre')) return;
+      const eta = texteEta(s);
+      $('eta-titre').textContent = eta.titre;
+      $('eta-detail').textContent = eta.detail;
+    }, 1000);
+
+    $('zone-suivi').addEventListener('click', (e) => {
+      const bouton = e.target.closest('[data-suivi]');
+      if (!bouton) return;
+      if (bouton.dataset.suivi === 'autre') {
+        const cible = $('liste-reco') || grilleHopitaux;
+        cible.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      if (bouton.dataset.suivi === 'masquer') {
+        suivis.delete(Number(bouton.dataset.id));
+        sauverSuivis();
+        afficherSuivi();
+      }
+    });
+
+    /* =========================================================
+       15 bis. CONNEXION AU BACK-OFFICE (serveur FastAPI)
+       ========================================================= */
+    const depuisServeur = (h) => ({ ...h, majA: new Date(h.maj_a) });
+
+    function majIndicateurReseau() {
+      $('etat-reseau').classList.toggle('demo', !etat.modeConnecte);
+      $('texte-reseau').textContent = !etat.modeConnecte ? 'Mode démo (simulation)'
+        : etat.gemmaActif ? 'Réseau connecté · Agbe AI actif' : 'Réseau hospitalier connecté';
+      $('libelle-refresh').textContent = etat.modeConnecte ? 'Statuts publiés par les hôpitaux' : 'Prochaine mise à jour';
+      if (etat.modeConnecte) {
+        const anciens = hopitaux.filter(statutAncien).length;
+        $('compte-a-rebours').textContent = anciens
+          ? `⚠ ${anciens} statut${anciens > 1 ? 's' : ''} de plus d'1 h, à confirmer`
+          : 'En direct';
+        $('barre-refresh').style.width = '100%';
+      }
+      majHorsLigne();
+    }
+
+    // Sans réseau des hôpitaux, l'alerte ne part pas : on propose l'appel téléphonique en premier
+    function majHorsLigne() {
+      $('bandeau-hors-ligne').hidden = navigator.onLine && etat.modeConnecte;
+    }
+    window.addEventListener('online', majHorsLigne);
+    window.addEventListener('offline', majHorsLigne);
+
+    // Numéros de l'hôpital qui suit l'intervention, en tête de la liste d'appel
+    function numerosDesHopitauxSuivis() {
+      return [...suivis.values()]
+        .filter(s => s.statut === 'acceptee' && s.hopitalPos?.telephone)
+        .map(s => ({ numero: s.hopitalPos.telephone, affiche: formaterTel(s.hopitalPos.telephone).replace('+228 ', ''),
+                     libelle: s.hopital, detail: t('hopitalQuiVousSuit') }));
+    }
+    $('btn-appel').addEventListener('click', () => ouvrirAppelSecours(numerosDesHopitauxSuivis()));
+    $('fermer-appel').addEventListener('click', () => $('fenetre-appel').close());
+
+    const choixLangue = $('choix-langue');
+    choixLangue.value = langue;
+    choixLangue.addEventListener('change', () => changerLangue(choixLangue.value));
+    document.addEventListener('langue-changee', () => {
+      if (etat.analyse) afficherResultat(etat.analyse);
+      afficherHopitaux();
+      afficherBandeauSuivi();
+    });
+    appliquerTraductions();
+
+    brancherDictee(champDescription, $('micro-description'));
+    brancherDictee($('disc-texte'), $('micro-discussion'));
+
+    // Un statut devient « à confirmer » avec le temps, sans nouveau message du serveur
+    let signatureAnciens = '';
+    setInterval(() => {
+      if (!etat.modeConnecte) return;
+      const signature = hopitaux.filter(statutAncien).map(h => h.id).join();
+      if (signature === signatureAnciens) return;
+      signatureAnciens = signature;
+      afficherHopitaux();
+      rafraichirListeRecommandee();
+      majIndicateurReseau();
+    }, 60000);
+
+    // Essaie de joindre le serveur ; sans réponse, l'application reste en mode démo
+    async function connecterAuServeur() {
+      try {
+        const reponse = await fetch(API + '/api/hopitaux', { signal: AbortSignal.timeout(3000) });
+        if (!reponse.ok) throw new Error();
+        const donnees = await reponse.json();
+        hopitaux.splice(0, hopitaux.length, ...donnees.map(depuisServeur));
+        etat.modeConnecte = true;
+        afficherHopitaux();
+        try {
+          etat.gemmaActif = (await (await fetch(API + '/api/analyse/etat')).json()).actif;
+        } catch { etat.gemmaActif = false; }
+        await chargerLieuxServeur();
+        connecterTempsReel();
+        restaurerSuivis();
+      } catch {
+        etat.modeConnecte = false;
+        if (!hopitaux.length) {
+          await chargerDonneesDeSecours();
+          afficherHopitaux();
+        }
+        // Serveur absent (redémarrage, réseau) : on réessaie pour ne pas rester bloqué en mode démo
+        setTimeout(connecterAuServeur, 5000);
+      }
+      majIndicateurReseau();
+    }
+
+    // Les lieux sont gérés par l'administrateur ; la liste intégrée sert de secours
+    async function chargerLieuxServeur() {
+      try {
+        const lieux = await (await fetch(API + '/api/lieux')).json();
+        if (lieux.length) LIEUX.splice(0, LIEUX.length, ...lieux.map(l => ({ nom: l.nom, groupe: l.groupe })));
+      } catch { /* on garde la liste intégrée */ }
+    }
+
+    async function rechargerHopitauxServeur() {
+      const donnees = await (await fetch(API + '/api/hopitaux')).json();
+      hopitaux.splice(0, hopitaux.length, ...donnees.map(depuisServeur));
+      // Un hôpital supprimé ne doit plus être recommandé
+      if (etat.analyse) etat.analyse.hopitaux = etat.analyse.hopitaux.filter(id => trouverHopital(id));
+      afficherHopitaux();
+      majIndicateurReseau();
+    }
+
+    function connecterTempsReel() {
+      const ws = new WebSocket(URL_WS);
+
+      ws.onopen = () => {
+        etat.tentativesWs = 0;
+        etat.ws = ws;
+        ws.ping = setInterval(() => ws.readyState === 1 && ws.send('ping'), 25000);
+        // Abonnement au suivi des alertes envoyées depuis ce navigateur
+        suivis.forEach(s => ws.send(JSON.stringify({ suivre: s.token })));
+      };
+
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+
+        // Un hôpital vient de publier sa disponibilité
+        if (message.type === 'disponibilite') {
+          const index = hopitaux.findIndex(h => h.id === message.hopital.id);
+          if (index < 0) return;
+          const avant = hopitaux[index].statut;
+          hopitaux[index] = depuisServeur(message.hopital);
+          afficherHopitaux(new Set([message.hopital.id]));
+          majIndicateurReseau();
+
+          if (message.hopital.statut === 'sature' && avant !== 'sature' && estRecommande(message.hopital.id)) {
+            afficherToast('critique', `${message.hopital.nom} vient de saturer`,
+              'Cet hôpital recommandé n\'a plus de place : relancez l\'analyse pour une nouvelle orientation.');
+          }
+        }
+
+        // Un hôpital a répondu à une alerte
+        if (message.type === 'alerte_maj') traiterReponseHopital(message.alerte);
+
+        // Nouvelle position de l'ambulance (seulement pour les alertes de ce témoin)
+        if (message.type === 'ambulance') majSuiviAmbulance(message);
+        if (message.type === 'message') recevoirMessage(message.alerte_id, message.message);
+
+        // L'administrateur a modifié la liste des hôpitaux ou des lieux
+        if (message.type === 'hopitaux_maj') rechargerHopitauxServeur().catch(() => {});
+        if (message.type === 'lieux_maj') chargerLieuxServeur();
+      };
+
+      ws.onclose = () => {
+        clearInterval(ws.ping);
+        // Reconnexion progressive : 1 s, 2 s, 4 s… jusqu'à 15 s
+        const delai = Math.min(15000, 1000 * 2 ** etat.tentativesWs++);
+        setTimeout(async () => {
+          try {
+            await rechargerHopitauxServeur();
+            rafraichirSuivis();
+            // Rattrape les réponses arrivées pendant la coupure
+            etat.journal.filter(e => e.id && e.statut === 'envoyee').forEach(async e => {
+              try { traiterReponseHopital(await (await fetch(`${API}/api/alertes/${e.id}`)).json()); } catch { /* ignoré */ }
+            });
+          } catch { /* serveur encore absent */ }
+          connecterTempsReel();
+        }, delai);
+      };
+    }
+
+    /* =========================================================
+       16. DÉMARRAGE
+       ========================================================= */
+    afficherHopitaux();
+    $('horloge').textContent = formaterHeure(new Date(), true);
+    setInterval(tic, 1000);
+    connecterAuServeur();
+    // Leaflet est chargé avec "defer" : il est prêt juste avant DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', initialiserCarte);
+    // Par défaut, l'accident est placé là où se trouve le témoin
+    localiserUtilisateur(true);
+    $('btn-ma-position').addEventListener('click', () => {
+      basculerModeChoix(false);
+      champLieu.value = '';   // rempli avec le nom de la position GPS
+      etat.lieuAuto = '';
+      majBoutonEffacer();
+      localiserUtilisateur();
+    });
+    $('btn-changer-position').addEventListener('click', () => {
+      if (!carte.map) {
+        afficherToast('attention', 'Carte indisponible', 'Écrivez le lieu de l\'accident dans le champ « Localisation ».');
+        return;
+      }
+      basculerModeChoix();
+      if (etat.modeChoixPosition && window.innerWidth < 980) $('carte').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  </script>
+</body>
+</html>

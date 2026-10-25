@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espace ambulancier – UrgenceRégu Lomé</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="manifest" href="/manifest-ambulance.webmanifest">
+  <meta name="theme-color" content="#0056B3">
+  <link rel="icon" href="/icones/icone-192.png">
+  <link rel="apple-touch-icon" href="/icones/icone-192.png">
+  <link rel="stylesheet" href="/commun/commun.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
+
+  <style>
+    :root {
+      --bleu: #0056B3;
+      --bleu-fonce: #00428A;
+      --bleu-clair: #EAF2FC;
+      --blanc: #FFFFFF;
+      --rouge: #FF4D4D;
+      --rouge-fonce: #E63E3E;
+      --rouge-clair: #FFECEC;
+      --vert: #17935A;
+      --vert-clair: #E5F6ED;
+      --jaune: #B7800A;
+      --jaune-clair: #FFF5D9;
+      --texte: #1D2939;
+      --texte-doux: #667085;
+      --fond-app: #F4F7FC;
+      --rayon: 16px;
+      --rayon-petit: 12px;
+      --ombre: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --ombre-forte: 0 14px 36px rgba(0, 0, 0, 0.09);
+      --ombre-bleue: 0 10px 30px rgba(0, 86, 179, 0.14);
+      --transition: all 0.3s ease;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button, input, select { font: inherit; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: var(--fond-app);
+      color: var(--texte);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    [hidden] { display: none !important; }
+
+    .header { position: sticky; top: 0; z-index: 50; background: rgba(255, 255, 255, .92); backdrop-filter: blur(10px); box-shadow: var(--ombre); }
+    .header-inner { max-width: 760px; margin: 0 auto; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .logo { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; font-size: 1.3rem; background: var(--bleu-clair); }
+    .brand h1 { font-size: 1.05rem; color: var(--bleu); }
+    .brand p { font-size: .78rem; color: var(--texte-doux); }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; font-size: .76rem; font-weight: 600; color: var(--vert); background: var(--vert-clair); }
+    .pill.hors-ligne { color: var(--texte-doux); background: #EEF1F5; }
+    .btn-texte { padding: 6px 10px; font-size: .8rem; font-weight: 600; color: var(--texte-doux); background: none; border: none; cursor: pointer; }
+
+    main { max-width: 760px; margin: 0 auto; padding: 20px 16px 40px; }
+    .carte { background: var(--blanc); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 20px; }
+    .carte + .carte { margin-top: 16px; }
+
+    /* Connexion */
+    .connexion { max-width: 420px; margin: 30px auto; }
+    .connexion h2 { font-size: 1.2rem; }
+    .connexion > p { margin: 4px 0 18px; font-size: .88rem; color: var(--texte-doux); }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; margin-bottom: 6px; font-size: .84rem; font-weight: 600; }
+    .champ { width: 100%; padding: 12px 14px; border: none; border-radius: var(--rayon-petit); background: var(--fond-app); transition: var(--transition); }
+    .champ:focus { outline: none; box-shadow: 0 0 0 3px rgba(0, 86, 179, .18); background: var(--blanc); }
+    .erreur { margin-bottom: 14px; padding: 10px 12px; font-size: .84rem; color: var(--rouge-fonce); background: var(--rouge-clair); border-radius: var(--rayon-petit); }
+    .btn { width: 100%; padding: 13px 16px; font-weight: 700; color: var(--blanc); background: var(--bleu); border: none; border-radius: var(--rayon-petit); cursor: pointer; transition: var(--transition); }
+    .btn:hover:not(:disabled) { background: var(--bleu-fonce); transform: translateY(-2px); box-shadow: var(--ombre-bleue); }
+    .btn:disabled { opacity: .6; cursor: wait; }
+    .btn.vert { background: var(--vert); }
+    .btn.rouge { background: var(--rouge); }
+    .btn.doux { color: var(--bleu); background: var(--bleu-clair); }
+    .astuce { margin-top: 14px; font-size: .78rem; color: var(--texte-doux); }
+
+    /* Missions */
+    .titre-section { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+    .titre-section h2 { font-size: 1.1rem; }
+    .titre-section span { font-size: .8rem; color: var(--texte-doux); }
+    .vide { padding: 30px 10px; text-align: center; font-size: .9rem; color: var(--texte-doux); }
+    .vide .big { display: block; font-size: 2rem; margin-bottom: 8px; }
+    .mission-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .gravite { padding: 4px 10px; border-radius: 99px; font-size: .72rem; font-weight: 700; }
+    .gravite.critique { color: var(--blanc); background: var(--rouge); }
+    .gravite.urgent { color: var(--jaune); background: var(--jaune-clair); }
+    .gravite.modere { color: var(--bleu); background: var(--bleu-clair); }
+    .etape { font-size: .78rem; font-weight: 700; color: var(--bleu); }
+    .mission h3 { font-size: 1rem; }
+    .mission .desc { margin: 6px 0; font-size: .88rem; color: var(--texte-doux); }
+    .mission .diag { font-size: .8rem; color: var(--bleu); }
+    .carte-mission { height: 260px; margin: 14px 0; border-radius: var(--rayon-petit); overflow: hidden; background: var(--bleu-clair); z-index: 0; }
+    .etat-gps { margin-bottom: 12px; padding: 10px 12px; font-size: .82rem; border-radius: var(--rayon-petit); background: var(--fond-app); color: var(--texte-doux); }
+    .etat-gps.actif { color: var(--vert); background: var(--vert-clair); font-weight: 600; }
+    .etat-gps.erreur-gps { color: var(--rouge-fonce); background: var(--rouge-clair); }
+    .actions { display: grid; gap: 10px; }
+    .actions a.btn { display: block; text-align: center; text-decoration: none; }
+    .marqueur { display: grid; place-items: center; width: 34px !important; height: 34px !important; font-size: 1.1rem; background: var(--blanc); border-radius: 50%; box-shadow: var(--ombre-forte); }
+    .marqueur.moi { box-shadow: 0 0 0 3px var(--bleu), var(--ombre-forte); }
+    .marqueur.accident { box-shadow: 0 0 0 3px var(--rouge), var(--ombre-forte); }
+
+    .gravite-maj { margin: 8px 0; padding: 8px 12px; font-size: .82rem; font-weight: 700; color: var(--rouge-fonce); background: var(--rouge-clair); border-radius: var(--rayon-petit); }
+
+    /* Discussion avec le témoin et l'hôpital */
+    .disc-tete { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .disc-tete h3 { font-size: 1rem; }
+    .disc-liste { list-style: none; display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; margin: 12px 0; padding: 2px; }
+    .disc-msg { align-self: flex-start; max-width: 85%; padding: 8px 12px; font-size: .9rem; background: var(--fond-app); border-radius: 14px; }
+    .disc-msg.moi { align-self: flex-end; color: var(--blanc); background: var(--bleu); }
+    .disc-msg.grave { color: var(--rouge-fonce); background: var(--rouge-clair); box-shadow: inset 0 0 0 2px var(--rouge); font-weight: 600; }
+    .disc-auteur { display: block; margin-bottom: 2px; font-size: .7rem; font-weight: 700; opacity: .75; }
+    .disc-vide { padding: 10px; font-size: .84rem; text-align: center; color: var(--texte-doux); }
+    .disc-rapides { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .disc-rapides button { padding: 9px 13px; font-size: .84rem; font-weight: 600; color: var(--bleu); background: var(--bleu-clair); border: none; border-radius: 99px; cursor: pointer; }
+    .disc-saisie { display: flex; gap: 8px; }
+    .disc-saisie .champ { flex: 1; }
+    .disc-saisie .btn { width: auto; }
+    .mission .discussion { margin-top: 16px; padding-top: 14px; border-top: 1px solid #E6E9EE; }
+    .disc-precision { margin-top: 2px; font-size: .78rem; color: var(--texte-doux); }
+    .apercu-msg { margin-top: 8px; font-size: .82rem; color: var(--texte-doux); }
+    .apercu-msg.nouveau { font-weight: 700; color: var(--rouge-fonce); }
+
+    .toast { position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 100; max-width: 460px; margin: 0 auto; padding: 14px 16px; font-size: .88rem; color: var(--blanc); background: var(--texte); border-radius: var(--rayon-petit); box-shadow: var(--ombre-forte); animation: monte .3s ease; }
+    .toast.critique { background: var(--rouge-fonce); }
+    .choix-vehicule { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 12px 14px; font-size: .9rem; font-weight: 600; background: var(--blanc); border-radius: var(--rayon-petit); box-shadow: var(--ombre); }
+    .choix-vehicule[hidden] { display: none; }
+    .choix-vehicule select { flex: 1; min-width: 0; padding: 9px 10px; font: inherit; border: 1px solid #D0D9E6; border-radius: 10px; background: var(--blanc); }
+    .vehicule-mission { margin-top: 6px; font-size: .84rem; font-weight: 600; color: var(--bleu); }
+    .note-autres { margin-top: 4px; font-size: .82rem; text-align: center; color: var(--texte-doux); }
+    .toast.succes { background: var(--vert); }
+    @keyframes monte { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">🚑</div>
+        <div>
+          <h1>UrgenceRégu Lomé</h1>
+          <p id="sous-titre">Espace ambulancier</p>
+        </div>
+      </div>
+      <div>
+        <button type="button" class="btn-installer" id="btn-installer" hidden>📲 Installer</button>
+        <span class="pill hors-ligne" id="etat-connexion">Hors ligne</span>
+        <button type="button" class="btn-texte" id="btn-deconnexion" hidden>Se déconnecter</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Connexion : même compte que l'espace hôpital -->
+    <form class="carte connexion" id="ecran-connexion" novalidate>
+      <h2>Connexion de l'ambulance</h2>
+      <p>Utilisez le compte des urgences de votre hôpital.</p>
+      <div class="erreur" id="erreur-connexion" hidden></div>
+      <div class="field">
+        <label for="identifiant">Établissement</label>
+        <select class="champ" id="identifiant"><option value="">Chargement…</option></select>
+      </div>
+      <div class="field">
+        <label for="mot-de-passe">Mot de passe</label>
+        <input class="champ" type="password" id="mot-de-passe" autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn" id="btn-connexion">Se connecter</button>
+      <p class="astuce" id="astuce-gps"></p>
+    </form>
+
+    <!-- Missions : alertes acceptées par l'hôpital -->
+    <section id="ecran-missions" hidden>
+      <div class="titre-section">
+        <h2>Missions en cours</h2>
+        <span id="compte-missions"></span>
+      </div>
+      <label class="choix-vehicule" id="zone-vehicule" hidden>🚑 Mon véhicule :
+        <select id="mon-vehicule"></select>
+      </label>
+      <div id="liste-missions"></div>
+    </section>
+  </main>
+
+  <script src="/commun/commun.js"></script>
+  <script>
+    'use strict';
+
+    // API, URL_WS, $, echapperHTML, GRAVITES : commun/commun.js
+    const INTERVALLE_ENVOI_MS = 3000;   // au plus une position toutes les 3 secondes
+    const ETAPES = { en_route: '🚑 En route', sur_place: '📍 Sur place', terminee: '🏥 Terminée' };
+
+    const etat = {
+      token: localStorage.getItem('urgence_token_ambulance'),
+      hopital: null,
+      missions: [],
+      ouverte: null,          // id de la mission affichée en grand
+      gps: null,              // id de navigator.geolocation.watchPosition
+      dernierEnvoi: 0,
+      position: null,
+      verrouEcran: null,
+      tentativesWs: 0,
+      brouillons: {},    // texte en cours de saisie, par trajet
+      nonLus: {},        // messages reçus sur un trajet qui n'est pas affiché
+      flotte: [],        // véhicules de l'hôpital
+      vehicule: null,    // véhicule de ce téléphone (mémorisé), null = voir toutes les missions
+      autres: 0          // missions masquées car confiées à un autre véhicule
+    };
+    const cleVehicule = () => `urgence_vehicule_${etat.hopital?.id}`;
+    const carte = { map: null, moi: null, trajet: null };
+
+    function toast(type, message, duree = 4500) {
+      document.querySelector('.toast')?.remove();
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.setAttribute('role', 'status');
+      el.textContent = message;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), duree);
+    }
+
+    async function api(chemin, options = {}) {
+      const reponse = await fetch(API + chemin, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...(etat.token ? { Authorization: 'Bearer ' + etat.token } : {}) }
+      });
+      const donnees = await reponse.json().catch(() => ({}));
+      if (reponse.status === 401 && etat.token) deconnexion(false);
+      if (!reponse.ok) throw new Error(typeof donnees.detail === 'string' ? donnees.detail : 'Erreur du serveur.');
+      return donnees;
+    }
+
+    /* ----- Connexion ----- */
+    async function chargerEtablissements() {
+      try {
+        const hopitaux = await api('/api/hopitaux');
+        $('identifiant').innerHTML = '<option value="">Choisissez votre hôpital</option>' +
+          hopitaux.map(h => `<option value="${echapperHTML(h.id)}">${echapperHTML(h.nom)}</option>`).join('');
+      } catch {
+        $('identifiant').innerHTML = '<option value="">Serveur injoignable</option>';
+      }
+    }
+
+    $('ecran-connexion').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const bouton = $('btn-connexion');
+      bouton.disabled = true;
+      try {
+        const r = await api('/api/connexion', {
+          method: 'POST',
+          body: JSON.stringify({ identifiant: $('identifiant').value, mot_de_passe: $('mot-de-passe').value })
+        });
+        if (r.role !== 'agent') throw new Error('Ce compte n\'est pas rattaché à un hôpital.');
+        etat.token = r.token;
+        localStorage.setItem('urgence_token_ambulance', r.token);
+        $('erreur-connexion').hidden = true;
+        await ouvrirEspace();
+      } catch (err) {
+        $('erreur-connexion').textContent = err.message;
+        $('erreur-connexion').hidden = false;
+      } finally {
+        bouton.disabled = false;
+      }
+    });
+
+    async function ouvrirEspace() {
+      etat.hopital = await api('/api/mon-hopital');
+      $('sous-titre').textContent = `Ambulance – ${etat.hopital.nom}`;
+      $('ecran-connexion').hidden = true;
+      $('ecran-missions').hidden = false;
+      $('btn-deconnexion').hidden = false;
+      etat.vehicule = Number(localStorage.getItem(cleVehicule())) || null;
+      await chargerFlotte();
+      await chargerMissions();
+      connecterTempsReel();
+    }
+
+    /* ----- Véhicule de ce téléphone : chaque chauffeur ne voit que ses missions et les missions libres ----- */
+    async function chargerFlotte() {
+      etat.flotte = await api('/api/mon-hopital/ambulances');
+      if (!etat.flotte.some(v => v.id === etat.vehicule)) etat.vehicule = null;
+      $('zone-vehicule').hidden = !etat.flotte.length;
+      $('mon-vehicule').innerHTML = '<option value="">Choisir… (toutes les missions)</option>' +
+        etat.flotte.map(v => `<option value="${v.id}" ${v.id === etat.vehicule ? 'selected' : ''}>${echapperHTML(v.nom)}${v.plaque ? ' · ' + echapperHTML(v.plaque) : ''}</option>`).join('');
+    }
+
+    $('mon-vehicule').addEventListener('change', (e) => {
+      etat.vehicule = Number(e.target.value) || null;
+      if (etat.vehicule) localStorage.setItem(cleVehicule(), etat.vehicule);
+      else localStorage.removeItem(cleVehicule());
+      if (etat.gps !== null) arreterGps();
+      etat.ouverte = null;
+      chargerMissions().catch(() => {});
+    });
+
+    const nomVehicule = (id) => etat.flotte.find(v => v.id === id)?.nom || 'un autre véhicule';
+    // Sans véhicule choisi on voit tout ; sinon : les missions de ce véhicule et celles encore sans véhicule
+    const missionVisible = (m) => !etat.vehicule || m.ambulance_id == null || m.ambulance_id === etat.vehicule;
+
+    async function prendreMission(id) {
+      try {
+        await api(`/api/alertes/${id}/ambulance/prendre`, { method: 'POST', body: JSON.stringify({ ambulance_id: etat.vehicule }) });
+        etat.ouverte = id;
+        toast('succes', 'Mission prise : l\'hôpital voit que votre véhicule s\'en charge.');
+      } catch (err) {
+        toast('critique', err.message);
+      }
+      await chargerMissions().catch(() => {});
+    }
+
+    function deconnexion(prevenirServeur = true) {
+      if (prevenirServeur && etat.token) api('/api/deconnexion', { method: 'POST' }).catch(() => {});
+      arreterGps();
+      etat.token = null;
+      localStorage.removeItem('urgence_token_ambulance');
+      etat.ws?.close();
+      $('ecran-connexion').hidden = false;
+      $('ecran-missions').hidden = true;
+      $('btn-deconnexion').hidden = true;
+      $('sous-titre').textContent = 'Espace ambulancier';
+    }
+    $('btn-deconnexion').addEventListener('click', () => deconnexion());
+
+    /* ----- Missions ----- */
+    let chargementMissions = 0;
+    async function chargerMissions() {
+      const ticket = ++chargementMissions;
+      const missions = await api('/api/mon-hopital/missions');
+      if (ticket !== chargementMissions) return;   // une demande plus récente a déjà pris le relais
+      // Conserve un message arrivé pendant le chargement
+      const anciens = new Map(etat.missions.map(m => [m.id, m.messages || []]));
+      for (const m of missions) {
+        m.messages ??= [];
+        for (const msg of anciens.get(m.id) || []) {
+          if (!m.messages.some(x => x.id === msg.id)) m.messages.push(msg);
+        }
+        m.messages.sort((a, b) => a.id - b.id);
+      }
+      etat.autres = missions.filter(m => !missionVisible(m)).length;
+      etat.missions = missions.filter(missionVisible);
+      if (!etat.missions.some(m => m.id === etat.ouverte)) {
+        if (etat.gps) arreterGps();
+        etat.ouverte = etat.missions[0]?.id ?? null;
+      }
+      afficherMissions();
+    }
+
+    function afficherMissions() {
+      const saisie = document.activeElement?.id === 'disc-texte';
+      const curseur = saisie ? document.activeElement.selectionStart : 0;
+      carte.map?.remove();
+      Object.assign(carte, { map: null, moi: null, trajet: null });
+      const n = etat.missions.length;
+      $('compte-missions').textContent = n ? `${n} mission${n > 1 ? 's' : ''}` : '';
+
+      const autres = etat.autres
+        ? `<p class="note-autres">${etat.autres} autre${etat.autres > 1 ? 's' : ''} mission${etat.autres > 1 ? 's' : ''} confiée${etat.autres > 1 ? 's' : ''} à d'autres véhicules.</p>` : '';
+      if (!n) {
+        $('liste-missions').innerHTML = `
+          <div class="carte vide"><span class="big">✅</span>
+            Aucune mission pour le moment.<br>Les alertes acceptées par l'hôpital s'afficheront ici.</div>${autres}`;
+        return;
+      }
+      $('liste-missions').innerHTML = etat.missions.map(m => m.id === etat.ouverte ? missionOuverteHTML(m) : missionResumeHTML(m)).join('') + autres;
+      const ouverte = etat.missions.find(m => m.id === etat.ouverte);
+      if (ouverte) creerCarte(ouverte);
+      const liste = $('disc-liste');
+      if (liste) liste.scrollTop = liste.scrollHeight;
+      const champ = $('disc-texte');
+      if (saisie && champ) {
+        champ.focus();
+        champ.setSelectionRange(curseur, curseur);
+      }
+    }
+
+    function missionResumeHTML(m) {
+      return `
+        <article class="carte mission" data-mission="${m.id}">
+          <div class="mission-top">
+            <span class="gravite ${m.gravite}">${GRAVITES[m.gravite]}</span>
+            <span class="etape">${ETAPES[m.amb_statut] || 'À démarrer'}</span>
+          </div>
+          <h3>📍 ${echapperHTML(m.lieu)}</h3>
+          ${vehiculeMissionHTML(m)}
+          ${apercuMessagesHTML(m)}
+          <div class="actions" style="margin-top:12px"><button type="button" class="btn doux" data-action="ouvrir" data-id="${m.id}">Ouvrir ce trajet et sa discussion</button></div>
+        </article>`;
+    }
+
+    function vehiculeMissionHTML(m) {
+      if (m.ambulance_id == null) return etat.flotte.length ? '<p class="vehicule-mission">Aucun véhicule attribué pour l\'instant.</p>' : '';
+      const moi = m.ambulance_id === etat.vehicule;
+      return `<p class="vehicule-mission">🚑 ${moi ? 'Votre véhicule' : 'Véhicule'} : ${echapperHTML(m.ambulance_nom || nomVehicule(m.ambulance_id))}</p>`;
+    }
+
+    function missionOuverteHTML(m) {
+      const gpsActif = etat.gps !== null;
+      const enRoute = !m.amb_statut || m.amb_statut === 'en_route';
+      const itineraire = m.lat != null
+        ? `<a class="btn doux" href="https://www.google.com/maps/dir/?api=1&destination=${m.lat},${m.lng}&travelmode=driving" target="_blank" rel="noopener">🧭 Itinéraire Google Maps</a>` : '';
+      const appeler = m.temoin_tel
+        ? `<a class="btn doux" href="tel:${echapperHTML(m.temoin_tel)}">📞 Appeler le témoin${m.temoin_nom ? ' (' + echapperHTML(m.temoin_nom) + ')' : ''}</a>` : '';
+      let boutons;
+      if (etat.vehicule && m.ambulance_id == null) {
+        boutons = `<button type="button" class="btn" data-action="prendre" data-id="${m.id}">✋ Prendre cette mission avec ${echapperHTML(nomVehicule(etat.vehicule))}</button>`;
+      } else if (enRoute && !gpsActif) {
+        boutons = `<button type="button" class="btn" data-action="demarrer" data-id="${m.id}">▶ Démarrer le trajet (partager mon GPS)</button>`;
+      } else if (enRoute) {
+        boutons = `<button type="button" class="btn vert" data-action="sur_place" data-id="${m.id}">📍 Arrivé sur place</button>`;
+      } else {
+        boutons = `<button type="button" class="btn vert" data-action="terminee" data-id="${m.id}">🏥 Patient arrivé à l'hôpital</button>`;
+      }
+      return `
+        <article class="carte mission" data-mission="${m.id}">
+          <div class="mission-top">
+            <span class="gravite ${m.gravite}">${GRAVITES[m.gravite]}</span>
+            <span class="etape">${ETAPES[m.amb_statut] || 'À démarrer'}${m.amb_mode === 'simulation' ? ' (simulation)' : ''}</span>
+          </div>
+          <h3>📍 ${echapperHTML(m.lieu)}</h3>
+          ${vehiculeMissionHTML(m)}
+          <p class="desc">« ${echapperHTML(m.description)} »</p>
+          ${m.diagnostic ? `<p class="diag">✦ Analyse Agbe AI : ${echapperHTML(m.diagnostic)}</p>` : ''}
+          ${m.gravite_maj_a ? `<p class="gravite-maj">⚠ Gravité relevée à ${heure(m.gravite_maj_a)} d'après les messages du témoin</p>` : ''}
+          ${m.lat != null ? '<div class="carte-mission" id="carte-mission"></div>' : '<p class="desc">⚠ Position GPS de l\'accident inconnue : utilisez l\'adresse ci-dessus.</p>'}
+          <div class="etat-gps ${gpsActif ? 'actif' : ''}" id="etat-gps">${gpsActif ? '📡 GPS actif : votre position est partagée avec le témoin.' : 'GPS non partagé. Une position simulée est montrée au témoin en attendant.'}</div>
+          <div class="actions">${boutons}${appeler}${itineraire}</div>
+          ${discussionBlocHTML(m)}
+        </article>`;
+    }
+
+    function creerCarte(m) {
+      if (!window.L || m.lat == null || !$('carte-mission')) return;
+      const map = L.map('carte-mission', { zoomControl: false, attributionControl: false });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+      carte.map = map;
+      const accident = [m.lat, m.lng];
+      L.marker(accident, { icon: L.divIcon({ className: 'marqueur accident', html: '🚨', iconSize: [34, 34] }) }).addTo(map);
+      const points = [accident];
+      if (m.trajet?.length) {
+        carte.trajet = L.polyline(m.trajet, { color: '#0056B3', weight: 5, opacity: .55 }).addTo(map);
+        points.push(...m.trajet);
+      }
+      const ici = etat.position || (m.amb_lat != null && m.amb_mode === 'reel' ? { lat: m.amb_lat, lng: m.amb_lng } : null);
+      if (ici) {
+        carte.moi = L.marker([ici.lat, ici.lng], { icon: L.divIcon({ className: 'marqueur moi', html: '🚑', iconSize: [34, 34] }) }).addTo(map);
+        points.push([ici.lat, ici.lng]);
+      }
+      map.fitBounds(points, { padding: [30, 30], maxZoom: 16 });
+    }
+
+    /* ----- GPS de l'ambulance ----- */
+    async function demarrerGps(id) {
+      if (!window.isSecureContext || !navigator.geolocation) {
+        toast('critique', 'GPS bloqué : ouvrez cette page avec l\'adresse https://…:8443/ambulance', 7000);
+        return;
+      }
+      etat.ouverte = id;
+      etat.gps = navigator.geolocation.watchPosition(
+        (pos) => recevoirPosition(id, pos),
+        (erreur) => {
+          const el = $('etat-gps');
+          if (el) {
+            el.className = 'etat-gps erreur-gps';
+            el.textContent = erreur.code === 1
+              ? '⚠ Accès au GPS refusé : autorisez la localisation dans le navigateur.'
+              : '⚠ Position GPS indisponible, nouvelle tentative…';
+          }
+        },
+        { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
+      );
+      // Garde l'écran allumé pendant le trajet (si le téléphone le permet)
+      try { etat.verrouEcran = await navigator.wakeLock?.request('screen'); } catch { /* non supporté */ }
+      afficherMissions();
+      toast('succes', 'Trajet démarré : le témoin voit votre position en direct.');
+    }
+
+    function arreterGps() {
+      if (etat.gps !== null) navigator.geolocation.clearWatch(etat.gps);
+      etat.gps = null;
+      etat.position = null;
+      etat.verrouEcran?.release().catch(() => {});
+      etat.verrouEcran = null;
+    }
+
+    async function recevoirPosition(id, pos) {
+      const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+      etat.position = { lat, lng };
+      if (carte.map) {
+        if (carte.moi) carte.moi.setLatLng([lat, lng]);
+        else carte.moi = L.marker([lat, lng], { icon: L.divIcon({ className: 'marqueur moi', html: '🚑', iconSize: [34, 34] }) }).addTo(carte.map);
+      }
+      if (Date.now() - etat.dernierEnvoi < INTERVALLE_ENVOI_MS) return;
+      etat.dernierEnvoi = Date.now();
+      try {
+        const r = await api(`/api/alertes/${id}/ambulance/position`, {
+          method: 'POST', body: JSON.stringify({ lat, lng, ambulance_id: etat.vehicule })
+        });
+        const el = $('etat-gps');
+        if (el) {
+          el.className = 'etat-gps actif';
+          el.textContent = r.statut === 'sur_place'
+            ? '📍 Vous êtes sur le lieu de l\'accident.'
+            : `📡 GPS actif (précision ~${Math.round(accuracy)} m) · arrivée estimée dans ~${Math.max(1, Math.round(r.eta_s / 60))} min`;
+        }
+        const m = etat.missions.find(x => x.id === id);
+        if (m && m.amb_statut !== r.statut) { m.amb_statut = r.statut; m.amb_mode = 'reel'; afficherMissions(); }
+      } catch (err) {
+        toast('critique', err.message);
+        if (/terminée|introuvable|acceptée/.test(err.message)) { arreterGps(); chargerMissions().catch(() => {}); }
+      }
+    }
+
+    async function changerEtape(id, statut) {
+      try {
+        await api(`/api/alertes/${id}/ambulance/etape`, {
+          method: 'POST', body: JSON.stringify({ statut, ambulance_id: etat.vehicule })
+        });
+        if (statut === 'terminee') {
+          arreterGps();
+          toast('succes', 'Mission terminée. Merci !');
+        } else {
+          toast('succes', 'Le témoin est informé de votre arrivée.');
+        }
+        await chargerMissions();
+      } catch (err) {
+        toast('critique', err.message);
+      }
+    }
+
+    $('liste-missions').addEventListener('click', (e) => {
+      if (e.target.closest('#btn-voix')) { basculerVoix(); return; }
+      const rapide = e.target.closest('[data-rapide]');
+      if (rapide) { envoyerMessage(rapide.dataset.rapide); return; }
+      const bouton = e.target.closest('[data-action]');
+      if (!bouton) return;
+      const id = Number(bouton.dataset.id);
+      const action = bouton.dataset.action;
+      if (action === 'ouvrir') {
+        if (etat.gps !== null && etat.ouverte !== id) arreterGps();
+        etat.ouverte = id;
+        delete etat.nonLus[id];
+        afficherMissions();
+        $('disc-liste')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      if (action === 'demarrer') demarrerGps(id);
+      if (action === 'prendre') prendreMission(id);
+      if (action === 'sur_place' || action === 'terminee') changerEtape(id, action);
+    });
+    $('liste-missions').addEventListener('submit', async (e) => {
+      if (e.target.id !== 'disc-form') return;
+      e.preventDefault();
+      const id = Number(e.target.dataset.mission);
+      if (await envoyerMessage($('disc-texte').value, id)) {
+        $('disc-texte').value = '';
+        delete etat.brouillons[id];
+      }
+    });
+    $('liste-missions').addEventListener('input', (e) => {
+      if (e.target.id === 'disc-texte') etat.brouillons[etat.ouverte] = e.target.value;
+    });
+
+    /* ----- Discussion propre à chaque trajet (lue à voix haute pendant la conduite) ----- */
+    const AUTEURS = { temoin: '👤 Témoin', ambulance: '🚑 Vous', hopital: '🏥 Hôpital' };
+    const heure = (iso) => new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    let lectureVocale = localStorage.getItem('urgence_voix') !== 'non';
+    let contexteAudio = null;
+
+    function messagesHTML(messages) {
+      if (!messages?.length) {
+        return '<li class="disc-vide">Aucun message pour ce trajet. Écrivez si vous avez besoin d\'un renseignement.</li>';
+      }
+      return messages.map(msg => `
+        <li class="disc-msg ${msg.auteur === 'ambulance' ? 'moi' : ''} ${msg.grave ? 'grave' : ''}">
+          <span class="disc-auteur">${AUTEURS[msg.auteur] || 'Message'} · ${heure(msg.cree_a)}</span>${echapperHTML(msg.texte)}
+        </li>`).join('');
+    }
+
+    function apercuMessagesHTML(m) {
+      const messages = m.messages || [];
+      const nonLus = etat.nonLus[m.id] || 0;
+      if (!messages.length) return '';
+      const dernier = messages[messages.length - 1];
+      return `<p class="apercu-msg ${nonLus ? 'nouveau' : ''}">💬 ${messages.length} message${messages.length > 1 ? 's' : ''}
+        ${nonLus ? ` · ${nonLus} nouveau${nonLus > 1 ? 'x' : ''}` : ''} — ${echapperHTML(dernier.texte).slice(0, 80)}</p>`;
+    }
+
+    function discussionBlocHTML(m) {
+      const nb = (m.messages || []).length;
+      return `
+        <div class="discussion">
+          <div class="disc-tete">
+            <h3>💬 Discussion de ce trajet${nb ? ` (${nb})` : ''}</h3>
+            <button type="button" class="btn-texte" id="btn-voix" aria-pressed="${lectureVocale}">${lectureVocale ? '🔊 Lecture vocale : oui' : '🔇 Lecture vocale : non'}</button>
+          </div>
+          <p class="disc-precision">Messages de l'intervention à ${echapperHTML(m.lieu)} seulement. Chaque trajet a sa propre discussion.</p>
+          <ul class="disc-liste" id="disc-liste" aria-live="polite">${messagesHTML(m.messages)}</ul>
+          <div class="disc-rapides">
+            <button type="button" data-rapide="✅ Bien reçu">✅ Bien reçu</button>
+            <button type="button" data-rapide="🚑 J'arrive dans 5 minutes">🚑 J'arrive dans 5 min</button>
+            <button type="button" data-rapide="📍 Où êtes-vous exactement ? Un repère visible ?">📍 Où êtes-vous ?</button>
+            <button type="button" data-rapide="🤲 Ne bougez pas la victime, restez près d'elle">🤲 Ne la bougez pas</button>
+            <button type="button" data-rapide="📞 Je vous appelle">📞 Je vous appelle</button>
+          </div>
+          <form class="disc-saisie" id="disc-form" data-mission="${m.id}">
+            <input class="champ" id="disc-texte" maxlength="300" autocomplete="off" placeholder="Écrire au témoin de ce trajet…" aria-label="Message au témoin de ce trajet" value="${echapperHTML(etat.brouillons[m.id] || '')}">
+            <button type="submit" class="btn">Envoyer</button>
+          </form>
+        </div>`;
+    }
+
+    function majListeDiscussion(m) {
+      const liste = $('disc-liste');
+      const carteOuverte = liste?.closest('[data-mission]');
+      if (!liste || carteOuverte?.dataset.mission !== String(m.id)) return false;
+      liste.innerHTML = messagesHTML(m.messages);
+      liste.scrollTop = liste.scrollHeight;
+      const titre = carteOuverte.querySelector('.discussion h3');
+      if (titre) titre.textContent = `💬 Discussion de ce trajet${m.messages.length ? ` (${m.messages.length})` : ''}`;
+      return true;
+    }
+
+    // Le navigateur n'autorise le son qu'après un premier geste de l'utilisateur
+    document.addEventListener('pointerdown', () => {
+      contexteAudio ??= new (window.AudioContext || window.webkitAudioContext)();
+      contexteAudio.resume?.();
+    }, { once: true });
+
+    function bipGrave() {
+      navigator.vibrate?.([400, 150, 400, 150, 400]);
+      if (!contexteAudio) return;
+      [0, 0.35, 0.7].forEach(decalage => {
+        const osc = contexteAudio.createOscillator();
+        const volume = contexteAudio.createGain();
+        osc.type = 'square';
+        osc.frequency.value = 880;
+        volume.gain.value = 0.15;
+        osc.connect(volume).connect(contexteAudio.destination);
+        osc.start(contexteAudio.currentTime + decalage);
+        osc.stop(contexteAudio.currentTime + decalage + 0.22);
+      });
+    }
+
+    function lireAVoixHaute(texte) {
+      if (!lectureVocale || !window.speechSynthesis) return;
+      const phrase = new SpeechSynthesisUtterance(texte.replace(/\p{Extended_Pictographic}/gu, ''));
+      phrase.lang = 'fr-FR';
+      speechSynthesis.speak(phrase);
+    }
+
+    function basculerVoix() {
+      lectureVocale = !lectureVocale;
+      localStorage.setItem('urgence_voix', lectureVocale ? 'oui' : 'non');
+      if (!lectureVocale) window.speechSynthesis?.cancel();
+      const bouton = $('btn-voix');
+      if (!bouton) return;
+      bouton.textContent = lectureVocale ? '🔊 Lecture vocale : oui' : '🔇 Lecture vocale : non';
+      bouton.setAttribute('aria-pressed', String(lectureVocale));
+    }
+
+    function majApercu(m) {
+      const carteMission = document.querySelector(`[data-mission="${m.id}"]`);
+      if (!carteMission || carteMission.querySelector('.discussion')) return;
+      const html = apercuMessagesHTML(m);
+      const apercu = carteMission.querySelector('.apercu-msg');
+      if (apercu) apercu.outerHTML = html;
+      else carteMission.querySelector('h3')?.insertAdjacentHTML('afterend', html);
+    }
+
+    function recevoirMessage(alerteId, message) {
+      const m = etat.missions.find(x => x.id === alerteId);
+      if (!m) { chargerMissions().catch(() => {}); return; }
+      m.messages ??= [];
+      if (m.messages.some(x => x.id === message.id)) return;
+      m.messages.push(message);
+
+      if (m.id === etat.ouverte) {
+        delete etat.nonLus[m.id];
+        if (!majListeDiscussion(m)) afficherMissions();
+      } else {
+        etat.nonLus[m.id] = (etat.nonLus[m.id] || 0) + 1;
+        majApercu(m);
+      }
+      if (message.auteur === 'ambulance') return;
+      const qui = message.auteur === 'temoin' ? 'du témoin' : 'de l\'hôpital';
+      if (message.grave) {
+        bipGrave();
+        toast('critique', `⚠ ${m.lieu} : ${message.texte}`, 10000);
+      } else {
+        toast('', `💬 ${m.lieu} — message ${qui} : ${message.texte}`, 7000);
+      }
+      lireAVoixHaute(`${message.grave ? 'Attention. ' : ''}Message ${qui} : ${message.texte}`);
+    }
+
+    async function envoyerMessage(texte, id = etat.ouverte) {
+      texte = texte.trim();
+      if (!id || !texte) return false;
+      try {
+        const message = await api(`/api/alertes/${id}/messages`, {
+          method: 'POST', body: JSON.stringify({ texte, auteur: 'ambulance' })
+        });
+        recevoirMessage(id, message);
+        return true;
+      } catch (err) {
+        toast('critique', err.message);
+        return false;
+      }
+    }
+
+    /* ----- Temps réel : nouvelles missions et trajet ----- */
+    function connecterTempsReel() {
+      if (!etat.token) return;
+      const ws = new WebSocket(`${URL_WS}?token=${encodeURIComponent(etat.token)}`);
+      etat.ws = ws;
+      ws.onopen = () => {
+        etat.tentativesWs = 0;
+        $('etat-connexion').className = 'pill';
+        $('etat-connexion').textContent = 'En direct';
+        ws.ping = setInterval(() => ws.readyState === 1 && ws.send('ping'), 25000);
+      };
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'alerte_maj' && message.alerte.hopital_id === etat.hopital?.id && message.alerte.statut === 'acceptee') {
+          chargerMissions().then(() => toast('critique', '🚨 Nouvelle mission : une alerte vient d\'être acceptée.', 7000)).catch(() => {});
+          navigator.vibrate?.([300, 150, 300]);
+        }
+        if (message.type === 'ambulance') {
+          const m = etat.missions.find(x => x.id === message.alerte_id);
+          if (!m || !message.ambulance) return;
+          const etapeChange = m.amb_statut !== message.ambulance.statut;
+          Object.assign(m, { amb_statut: message.ambulance.statut, amb_mode: message.ambulance.mode });
+          if (message.trajet) {
+            m.trajet = message.trajet;
+            if (carte.map && m.id === etat.ouverte) {
+              carte.trajet?.remove();
+              carte.trajet = L.polyline(m.trajet, { color: '#0056B3', weight: 5, opacity: .55 }).addTo(carte.map);
+            }
+          }
+          if (etapeChange && message.ambulance.statut === 'terminee') chargerMissions().catch(() => {});
+          else if (etapeChange && etat.gps === null) afficherMissions();
+        }
+        if (message.type === 'message') recevoirMessage(message.alerte_id, message.message);
+        // Véhicule ajouté, retiré ou attribué : la liste des missions visibles peut changer
+        if (message.type === 'flotte_maj' && etat.gps === null) {
+          chargerFlotte().then(chargerMissions).catch(() => {});
+        }
+        if (message.type === 'gravite') {
+          const m = etat.missions.find(x => x.id === message.alerte_id);
+          if (!m) return;
+          Object.assign(m, { gravite: message.gravite, diagnostic: message.diagnostic, gravite_maj_a: message.gravite_maj_a });
+          afficherMissions();
+          bipGrave();
+          toast('critique', `⚠ Gravité relevée : ${GRAVITES[message.gravite]} (${message.source})`, 10000);
+          lireAVoixHaute(`Attention, la gravité passe à ${GRAVITES[message.gravite].replace('⚠ ', '')}.`);
+        }
+      };
+      ws.onclose = () => {
+        clearInterval(ws.ping);
+        $('etat-connexion').className = 'pill hors-ligne';
+        $('etat-connexion').textContent = etat.token ? 'Reconnexion…' : 'Hors ligne';
+        if (!etat.token) return;
+        setTimeout(() => {
+          chargerMissions().catch(() => {});
+          connecterTempsReel();
+        }, Math.min(15000, 1000 * 2 ** etat.tentativesWs++));
+      };
+    }
+
+    /* ----- Démarrage ----- */
+    $('astuce-gps').textContent = window.isSecureContext
+      ? 'Démo : mot de passe lome2026. Gardez cette page ouverte pendant le trajet.'
+      : '⚠ Pour partager le GPS, ouvrez cette page avec l\'adresse https://…:8443/ambulance (mot de passe démo : lome2026).';
+    chargerEtablissements();
+    // Leaflet est chargé avec "defer" : on attend qu'il soit prêt avant de dessiner les cartes
+    document.addEventListener('DOMContentLoaded', () => {
+      if (etat.token) ouvrirEspace().catch(() => deconnexion(false));
+    });
+  </script>
+</body>
+</html>

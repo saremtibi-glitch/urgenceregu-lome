@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+.pytest_cache/
+backend/urgence_regu.db
+backend/.env
+backend/certificat/

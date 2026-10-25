@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administration – UrgenceRégu Lomé</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#0056B3">
+  <link rel="icon" type="image/png" href="/icones/icone-192.png">
+  <link rel="apple-touch-icon" href="/icones/icone-192.png">
+  <link rel="stylesheet" href="/commun/commun.css">
+
+  <style>
+    /* =========================================================
+       1. CHARTE GRAPHIQUE (identique au reste de l'application)
+       ========================================================= */
+    :root {
+      --bleu: #0056B3;
+      --bleu-fonce: #00428A;
+      --bleu-clair: #EAF2FC;
+      --blanc: #FFFFFF;
+      --rouge: #FF4D4D;
+      --rouge-fonce: #E63E3E;
+      --rouge-clair: #FFECEC;
+      --vert: #17935A;
+      --vert-clair: #E5F6ED;
+      --jaune: #B7800A;
+      --jaune-clair: #FFF5D9;
+      --texte: #1D2939;
+      --texte-doux: #667085;
+      --fond-app: #F4F7FC;
+      --rayon: 16px;
+      --rayon-petit: 12px;
+      --ombre: 0 4px 20px rgba(0, 0, 0, 0.05);
+      --ombre-forte: 0 14px 36px rgba(0, 0, 0, 0.09);
+      --ombre-bleue: 0 10px 30px rgba(0, 86, 179, 0.14);
+      --transition: all 0.3s ease;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button, input, select { font: inherit; }
+    [hidden] { display: none !important; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 420px at 50% -220px, rgba(0, 86, 179, .06), transparent 70%), var(--fond-app);
+      color: var(--texte);
+      line-height: 1.55;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* =========================================================
+       2. EN-TÊTE ET NAVIGATION
+       ========================================================= */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255, 255, 255, .88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+    }
+    .header-inner {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .logo {
+      position: relative;
+      width: 46px;
+      height: 46px;
+      flex-shrink: 0;
+      border-radius: 14px;
+      background: linear-gradient(140deg, #1C7FE6 0%, var(--bleu) 55%, var(--bleu-fonce) 100%);
+      box-shadow: 0 8px 18px rgba(0, 86, 179, .30);
+    }
+    .logo::before, .logo::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      background: var(--blanc);
+      border-radius: 3px;
+      transform: translate(-50%, -50%);
+    }
+    .logo::before { width: 24px; height: 7px; }
+    .logo::after  { width: 7px; height: 24px; }
+    .brand h1 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.02em; color: var(--bleu); line-height: 1.2; }
+    .brand p { font-size: .85rem; color: var(--texte-doux); }
+
+    .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 13px; font-size: .8rem; font-weight: 600; border-radius: 999px; white-space: nowrap; transition: var(--transition); }
+    .pill-live { background: var(--vert-clair); color: var(--vert); }
+    .pill-live.hors-ligne { background: var(--jaune-clair); color: var(--jaune); }
+    .live-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .live-dot::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: currentColor; animation: ping 1.6s cubic-bezier(0, 0, .2, 1) infinite; }
+
+    .nav {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 0 24px 12px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      font-size: .88rem;
+      font-weight: 600;
+      white-space: nowrap;
+      color: var(--texte-doux);
+      background: transparent;
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .nav-btn:hover { color: var(--bleu); background: var(--bleu-clair); }
+    .nav-btn.actif { color: var(--blanc); background: var(--bleu); box-shadow: var(--ombre-bleue); }
+    .nav-btn .compte { min-width: 20px; padding: 1px 7px; font-size: .72rem; text-align: center; color: var(--blanc); background: var(--rouge); border-radius: 999px; }
+
+    /* =========================================================
+       3. COMPOSANTS COMMUNS
+       ========================================================= */
+    .contenu { max-width: 1320px; margin: 0 auto; padding: 26px 24px 40px; }
+    .vue { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; animation: fondu .5s ease both; }
+
+    .carte { background: var(--blanc); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 24px; transition: var(--transition); }
+    .carte-entete { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+    .carte-entete h2 { font-size: 1.05rem; font-weight: 700; }
+    .carte-entete p { font-size: .84rem; color: var(--texte-doux); }
+
+    .grille-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      font-size: .86rem;
+      font-weight: 600;
+      white-space: nowrap;
+      border: none;
+      border-radius: var(--rayon-petit);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn:disabled { opacity: .65; cursor: wait; }
+    .btn-bleu { color: var(--blanc); background: var(--bleu); box-shadow: var(--ombre-bleue); }
+    .btn-bleu:hover:not(:disabled) { background: var(--bleu-fonce); transform: translateY(-2px); }
+    .btn-doux { color: var(--bleu); background: var(--bleu-clair); }
+    .btn-doux:hover:not(:disabled) { color: var(--blanc); background: var(--bleu); }
+    .btn-gris { color: #475467; background: var(--fond-app); }
+    .btn-gris:hover:not(:disabled) { color: var(--texte); background: #E4EAF3; }
+    .btn-danger { color: var(--rouge-fonce); background: var(--rouge-clair); }
+    .btn-danger:hover:not(:disabled) { color: var(--blanc); background: var(--rouge); }
+    .btn-petit { padding: 6px 11px; font-size: .78rem; border-radius: 9px; }
+    .btn-large { width: 100%; padding: 14px 20px; font-size: .96rem; font-weight: 700; }
+
+    .mini-spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .4); border-top-color: var(--blanc); animation: rotation .8s linear infinite; }
+
+    .champ { width: 100%; padding: 11px 13px; font-size: .9rem; color: var(--texte); background: var(--fond-app); border: none; border-radius: var(--rayon-petit); transition: var(--transition); }
+    .champ:hover { background-color: #EEF3FA; }
+    .champ:focus { outline: none; background-color: var(--blanc); box-shadow: 0 0 0 3px rgba(0, 86, 179, .14), 0 6px 20px rgba(0, 86, 179, .08); }
+    select.champ {
+      appearance: none;
+      cursor: pointer;
+      padding-right: 38px;
+      background-image: linear-gradient(45deg, transparent 50%, #98A2B3 50%), linear-gradient(135deg, #98A2B3 50%, transparent 50%);
+      background-position: calc(100% - 19px) 50%, calc(100% - 14px) 50%;
+      background-size: 5px 5px;
+      background-repeat: no-repeat;
+    }
+
+    .barre-outils { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .barre-outils .champ { flex: 1 1 240px; }
+    .segments { display: flex; gap: 6px; flex-wrap: wrap; }
+    .segment { padding: 8px 14px; font-size: .82rem; font-weight: 600; color: var(--texte-doux); background: var(--fond-app); border: none; border-radius: 999px; cursor: pointer; transition: var(--transition); }
+    .segment:hover { color: var(--bleu); background: var(--bleu-clair); }
+    .segment.actif { color: var(--blanc); background: var(--bleu); box-shadow: var(--ombre-bleue); }
+
+    .tag-type { display: inline-flex; padding: 2px 7px; font-size: .64rem; font-weight: 800; letter-spacing: .06em; border-radius: 6px; vertical-align: middle; }
+    .tag-type.public       { color: var(--bleu); background: var(--bleu-clair); }
+    .tag-type.prive        { color: #475467; background: #EEF0F3; }
+    .tag-type.polyclinique { color: #0E7C86; background: #E3F6F7; }
+
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; font-size: .74rem; font-weight: 700; border-radius: 999px; white-space: nowrap; }
+    .badge.disponible, .badge.acceptee { background: var(--vert-clair); color: var(--vert); }
+    .badge.limite, .badge.envoyee      { background: var(--jaune-clair); color: var(--jaune); }
+    .badge.sature                      { background: var(--rouge); color: var(--blanc); }
+    .badge.refusee                     { background: #EEF0F3; color: #475467; }
+    .badge.critique                    { background: var(--rouge); color: var(--blanc); }
+    .badge.urgent                      { background: var(--jaune-clair); color: var(--jaune); }
+    .badge.modere                      { background: var(--bleu-clair); color: var(--bleu); }
+    .badge.admin                       { background: var(--bleu); color: var(--blanc); }
+    .badge.agent                       { background: var(--bleu-clair); color: var(--bleu); }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .chip { padding: 3px 9px; font-size: .72rem; color: #344054; background: var(--fond-app); border-radius: 999px; }
+
+    /* Tableaux */
+    .tableau-wrap { overflow-x: auto; margin: 0 -8px; }
+    table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    th { padding: 10px 12px; font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; text-align: left; color: var(--texte-doux); white-space: nowrap; }
+    td { padding: 12px; vertical-align: middle; border-top: 1px solid rgba(0, 0, 0, .04); transition: var(--transition); }
+    tr:hover td { background: var(--fond-app); }
+    td:first-child { border-radius: 10px 0 0 10px; }
+    td:last-child { border-radius: 0 10px 10px 0; }
+    td.nombre, th.nombre { text-align: right; font-variant-numeric: tabular-nums; }
+    td small { display: block; font-size: .76rem; color: var(--texte-doux); }
+    td .actions { display: flex; gap: 6px; justify-content: flex-end; }
+    tr.nouvelle td { animation: surbrillance 2.5s ease; }
+
+    /* Suivi des interventions et discussions (lecture seule) */
+    .infos-intervention { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; font-size: .76rem; }
+    .infos-intervention .ambulance { font-weight: 700; color: var(--bleu); }
+    .infos-intervention .grav-maj { font-weight: 700; color: var(--rouge-fonce); }
+    .btn-discussion { padding: 3px 10px; font-size: .74rem; font-weight: 700; color: var(--bleu); background: var(--bleu-clair); border: none; border-radius: 99px; cursor: pointer; }
+    .btn-discussion.alerte-grave { color: var(--blanc); background: var(--rouge); }
+    tr.ligne-discussion td { padding-top: 0; background: #FAFBFD; }
+    .disc-liste { list-style: none; display: flex; flex-direction: column; gap: 6px; max-width: 640px; max-height: 260px; overflow-y: auto; margin: 0 auto; padding: 10px 2px; }
+    .disc-msg { align-self: flex-start; max-width: 85%; padding: 7px 11px; font-size: .84rem; background: var(--blanc); border-radius: 13px; box-shadow: var(--ombre); }
+    .disc-msg.equipe { align-self: flex-end; color: var(--blanc); background: var(--bleu); }
+    .disc-msg.grave { color: var(--rouge-fonce); background: var(--rouge-clair); box-shadow: inset 0 0 0 2px var(--rouge); font-weight: 600; }
+    .disc-auteur { display: block; margin-bottom: 1px; font-size: .68rem; font-weight: 700; opacity: .75; }
+    .disc-vide { padding: 6px; font-size: .8rem; text-align: center; color: var(--texte-doux); }
+
+    .vide { padding: 30px; text-align: center; color: var(--texte-doux); background: var(--fond-app); border-radius: var(--rayon); }
+
+    /* =========================================================
+       4. VUE D'ENSEMBLE (indicateurs et graphiques)
+       ========================================================= */
+    .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+    .kpi { padding: 18px 20px; background: var(--blanc); border-radius: var(--rayon); box-shadow: var(--ombre); transition: var(--transition); }
+    .kpi:hover { transform: translateY(-4px); box-shadow: var(--ombre-forte); }
+    .kpi span { font-size: .8rem; color: var(--texte-doux); }
+    .kpi strong { display: block; margin-top: 4px; font-size: 1.7rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .kpi small { font-size: .76rem; color: var(--texte-doux); }
+    .kpi.alerte strong { color: var(--rouge-fonce); }
+
+    .histogramme { display: flex; align-items: flex-end; gap: 12px; height: 190px; padding-top: 18px; }
+    .colonne { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; }
+    .colonne .valeur { font-size: .76rem; font-weight: 700; color: var(--bleu); }
+    .colonne .barre { width: 100%; max-width: 46px; min-height: 4px; background: linear-gradient(180deg, #4C9BEA, var(--bleu)); border-radius: 8px 8px 4px 4px; transition: height .8s ease; }
+    .colonne .jour { font-size: .72rem; color: var(--texte-doux); white-space: nowrap; }
+    .histogramme.heures { gap: 3px; height: 150px; }
+    .histogramme.heures .valeur { font-size: .62rem; }
+    .histogramme.heures .jour { font-size: .62rem; min-height: 1em; }
+
+    .bandeau-demo { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; padding: 14px 18px; font-size: .88rem; color: #7A5300; background: var(--jaune-clair); border: 1px solid #F5D98B; border-radius: var(--rayon); }
+    .bandeau-demo[hidden] { display: none; }
+    .bandeau-demo span { flex: 1 1 260px; }
+    .badge.fausse { background: var(--jaune-clair); color: #8A4B00; }
+    .antecedents { display: block; margin-top: 4px; font-size: .74rem; font-weight: 600; color: #8A4B00; }
+    .export { display: flex; gap: 8px; align-items: center; }
+    .export .champ { width: auto; padding-top: 9px; padding-bottom: 9px; }
+
+    .lignes-barres { display: grid; gap: 12px; }
+    .ligne-barre { display: grid; grid-template-columns: minmax(90px, 1fr) 2fr 36px; align-items: center; gap: 12px; font-size: .85rem; }
+    .ligne-barre .nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .piste { height: 8px; background: var(--fond-app); border-radius: 99px; overflow: hidden; }
+    .remplissage { height: 100%; width: 0; background: var(--bleu); border-radius: 99px; transition: width .8s ease; }
+    .remplissage.critique { background: var(--rouge); }
+    .remplissage.urgent   { background: #E9B308; }
+    .remplissage.modere   { background: #4C9BEA; }
+    .remplissage.disponible { background: var(--vert); }
+    .remplissage.limite     { background: #E9B308; }
+    .remplissage.sature     { background: var(--rouge); }
+    .ligne-barre .n { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    /* =========================================================
+       5. LIEUX
+       ========================================================= */
+    .ajout-lieu { display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; margin-bottom: 16px; }
+    .groupe-lieux { margin-top: 18px; }
+    .groupe-lieux h3 { margin-bottom: 10px; font-size: .74rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--texte-doux); }
+    .chip-lieu {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 6px 5px 12px;
+      font-size: .82rem;
+      background: var(--fond-app);
+      border-radius: 999px;
+      transition: var(--transition);
+      animation: fondu .3s ease both;
+    }
+    .chip-lieu:hover { background: var(--bleu-clair); }
+    .chip-lieu button { width: 22px; height: 22px; font-size: .95rem; line-height: 1; color: #98A2B3; background: transparent; border: none; border-radius: 50%; cursor: pointer; transition: var(--transition); }
+    .chip-lieu button:hover { color: var(--blanc); background: var(--rouge); }
+
+    /* =========================================================
+       6. CONNEXION
+       ========================================================= */
+    .ecran-connexion { min-height: calc(100vh - 80px); display: grid; place-items: center; padding: 30px 16px; }
+    .carte-connexion { width: min(100%, 420px); padding: 32px; animation: fondu .5s ease both; }
+    .carte-connexion h2 { font-size: 1.35rem; font-weight: 800; }
+    .carte-connexion > p { margin: 4px 0 22px; font-size: .9rem; color: var(--texte-doux); }
+    .field { margin-bottom: 15px; }
+    .field label { display: block; margin-bottom: 7px; font-size: .86rem; font-weight: 600; }
+    .field small { display: block; margin-top: 5px; font-size: .76rem; color: var(--texte-doux); }
+    .erreur { margin-bottom: 14px; padding: 10px 12px; font-size: .85rem; font-weight: 500; color: #B42318; background: var(--rouge-clair); border-radius: 10px; animation: fondu .3s ease both; }
+    .aide-demo { margin-top: 18px; padding: 13px; font-size: .82rem; color: var(--texte-doux); background: var(--bleu-clair); border-radius: var(--rayon-petit); }
+    .aide-demo code { padding: 1px 6px; background: var(--blanc); border-radius: 5px; }
+
+    /* =========================================================
+       7. FENÊTRE MODALE
+       ========================================================= */
+    .modale-fond {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      background: rgba(16, 24, 40, .35);
+      backdrop-filter: blur(4px);
+      animation: apparitionFond .25s ease both;
+    }
+    .modale {
+      width: min(100%, 520px);
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      padding: 26px;
+      background: var(--blanc);
+      border-radius: var(--rayon);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, .18);
+      animation: fondu .35s ease both;
+    }
+    .modale h2 { margin-bottom: 4px; font-size: 1.15rem; font-weight: 800; }
+    .modale > p { margin-bottom: 18px; font-size: .86rem; color: var(--texte-doux); }
+    .modale-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .ligne-champ { display: flex; gap: 8px; }
+    .suggestions-spec { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .suggestions-spec button { padding: 4px 10px; font-size: .74rem; color: var(--bleu); background: var(--bleu-clair); border: none; border-radius: 999px; cursor: pointer; transition: var(--transition); }
+    .suggestions-spec button:hover, .suggestions-spec button.actif { color: var(--blanc); background: var(--bleu); }
+
+    /* =========================================================
+       8. NOTIFICATIONS
+       ========================================================= */
+    .toast-container { position: fixed; top: 130px; right: 20px; z-index: 100; display: flex; flex-direction: column; gap: 10px; width: min(390px, calc(100vw - 32px)); pointer-events: none; }
+    .toast { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px 16px; overflow: hidden; background: var(--blanc); border-left: 4px solid var(--bleu); border-radius: var(--rayon); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.10); pointer-events: auto; animation: toastEntree .45s cubic-bezier(.2, .9, .3, 1.15); }
+    .toast.sortie { animation: toastSortie .3s ease forwards; }
+    .toast.succes    { border-left-color: var(--vert);  --accent: var(--vert); }
+    .toast.info      { border-left-color: var(--bleu);  --accent: var(--bleu); }
+    .toast.attention { border-left-color: #E9B308;      --accent: #E9B308; }
+    .toast.critique  { border-left-color: var(--rouge); --accent: var(--rouge); background: #FFF8F8; }
+    .toast-icone { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 10px; background: var(--fond-app); }
+    .toast-texte { flex: 1; min-width: 0; }
+    .toast-texte strong { display: block; font-size: .9rem; }
+    .toast-texte p { margin-top: 2px; font-size: .82rem; color: var(--texte-doux); }
+    .toast-fermer { padding: 2px 6px; font-size: 1.1rem; line-height: 1; color: #98A2B3; background: none; border: none; border-radius: 6px; cursor: pointer; transition: var(--transition); }
+    .toast-fermer:hover { color: var(--texte); background: var(--fond-app); }
+    .toast-progression { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--accent, var(--bleu)); transform-origin: left; animation: retrecir linear forwards; }
+
+    /* =========================================================
+       9. ANIMATIONS ET RESPONSIVE
+       ========================================================= */
+    @keyframes ping           { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.8); opacity: 0; } }
+    @keyframes rotation       { to { transform: rotate(360deg); } }
+    @keyframes fondu          { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes apparitionFond { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes surbrillance   { from { background: var(--rouge-clair); } to { background: transparent; } }
+    @keyframes retrecir       { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+    @keyframes toastEntree    { from { opacity: 0; transform: translateX(40px) scale(.96); } to { opacity: 1; transform: none; } }
+    @keyframes toastSortie    { to { opacity: 0; transform: translateX(40px) scale(.96); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+    @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 900px)  { .grille-2 { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) {
+      .header-inner, .nav { padding-left: 14px; padding-right: 14px; }
+      .contenu { padding: 18px 14px 28px; }
+      .carte { padding: 18px; }
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .ajout-lieu { grid-template-columns: 1fr; }
+      .histogramme { gap: 6px; }
+      .toast-container { top: auto; bottom: 14px; right: 14px; left: 14px; width: auto; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>UrgenceRégu Lomé</h1>
+          <p>Administration – Régulation des urgences</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="pill pill-live hors-ligne" id="etat-connexion"><span class="live-dot"></span> <span id="texte-connexion">Hors ligne</span></span>
+        <button type="button" class="btn btn-gris" id="btn-deconnexion" hidden>Se déconnecter</button>
+      </div>
+    </div>
+    <nav class="nav" id="nav" hidden aria-label="Sections de l'administration">
+      <button type="button" class="nav-btn actif" data-vue="ensemble">📊 Vue d'ensemble</button>
+      <button type="button" class="nav-btn" data-vue="alertes">🚨 Alertes <span class="compte" id="nav-attente" hidden>0</span></button>
+      <button type="button" class="nav-btn" data-vue="hopitaux">🏥 Hôpitaux</button>
+      <button type="button" class="nav-btn" data-vue="comptes">👤 Comptes</button>
+      <button type="button" class="nav-btn" data-vue="lieux">📍 Lieux</button>
+    </nav>
+  </header>
+
+  <!-- =========================================================
+       CONNEXION
+       ========================================================= -->
+  <main class="ecran-connexion" id="ecran-connexion">
+    <form class="carte carte-connexion" id="form-connexion" novalidate>
+      <h2>Espace administrateur</h2>
+      <p>Réservé à l'équipe de régulation.</p>
+      <div class="erreur" id="erreur-connexion" hidden></div>
+      <div class="field">
+        <label for="identifiant">Identifiant</label>
+        <input class="champ" type="text" id="identifiant" value="admin" autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="mot-de-passe">Mot de passe</label>
+        <input class="champ" type="password" id="mot-de-passe" autocomplete="current-password" placeholder="Votre mot de passe">
+      </div>
+      <button type="submit" class="btn btn-bleu btn-large" id="btn-connexion">Se connecter</button>
+      <div class="aide-demo">Compte de démonstration : <code>admin</code> / <code>admin2026</code></div>
+    </form>
+  </main>
+
+  <main class="contenu" id="application" hidden>
+
+    <!-- ===== VUE D'ENSEMBLE ===== -->
+    <section class="vue" data-section="ensemble">
+      <div class="bandeau-demo" id="bandeau-demo" role="alert" hidden>
+        <span id="texte-demo"></span>
+        <button type="button" class="btn btn-gris btn-petit" id="btn-voir-comptes">Gérer les comptes</button>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><span>Alertes aujourd'hui</span><strong id="kpi-jour">0</strong><small id="kpi-total">0 au total</small></div>
+        <div class="kpi alerte"><span>En attente de réponse</span><strong id="kpi-attente">0</strong><small>alertes sans réponse</small></div>
+        <div class="kpi"><span>Taux d'acceptation</span><strong id="kpi-taux">—</strong><small id="kpi-taux-detail">aucune réponse</small></div>
+        <div class="kpi"><span>Délai moyen de réponse</span><strong id="kpi-delai">—</strong><small>entre l'alerte et la réponse</small></div>
+        <div class="kpi alerte"><span>Hôpitaux saturés</span><strong id="kpi-satures">0</strong><small id="kpi-satures-detail">sur 0 établissements</small></div>
+        <div class="kpi"><span>Arrivée de l'ambulance</span><strong id="kpi-arrivee">—</strong><small>délai moyen après acceptation</small></div>
+        <div class="kpi"><span>Flotte d'ambulances</span><strong id="kpi-flotte">0</strong><small id="kpi-flotte-detail">véhicules</small></div>
+        <div class="kpi"><span>Fausses alertes</span><strong id="kpi-fausses">0</strong><small id="kpi-fausses-detail">signalées par les équipes</small></div>
+      </div>
+
+      <div class="grille-2">
+        <div class="carte">
+          <div class="carte-entete"><div><h2>Alertes des 7 derniers jours</h2><p>Nombre d'alertes envoyées par jour</p></div></div>
+          <div class="histogramme" id="graph-jours"></div>
+        </div>
+        <div class="carte">
+          <div class="carte-entete"><div><h2>Lieux les plus signalés</h2><p>Zones à surveiller en priorité</p></div></div>
+          <div class="lignes-barres" id="graph-lieux"></div>
+        </div>
+      </div>
+
+      <div class="grille-2">
+        <div class="carte">
+          <div class="carte-entete"><div><h2>Gravité des alertes</h2><p>Selon l'analyse d'Agbe AI</p></div></div>
+          <div class="lignes-barres" id="graph-gravite"></div>
+        </div>
+        <div class="carte">
+          <div class="carte-entete"><div><h2>Disponibilité actuelle</h2><p>Statuts publiés par les hôpitaux</p></div></div>
+          <div class="lignes-barres" id="graph-dispo"></div>
+        </div>
+      </div>
+
+      <div class="carte">
+        <div class="carte-entete"><div><h2>Alertes par heure de la journée</h2><p>Pour renforcer les équipes aux heures chargées (heure de Lomé)</p></div></div>
+        <div class="histogramme heures" id="graph-heures"></div>
+      </div>
+
+      <div class="carte">
+        <div class="carte-entete">
+          <div><h2>Performance des hôpitaux</h2><p>Réponses aux alertes et saturations publiées</p></div>
+          <button type="button" class="btn btn-doux" id="btn-actualiser">↻ Actualiser</button>
+        </div>
+        <div class="tableau-wrap">
+          <table>
+            <thead><tr>
+              <th>Établissement</th><th>Statut</th><th class="nombre">Alertes</th><th class="nombre">Acceptées</th>
+              <th class="nombre">Refusées</th><th class="nombre">En attente</th><th class="nombre">Délai moyen</th><th class="nombre">Arrivée ambulance</th><th class="nombre">Fausses alertes</th><th class="nombre">Saturations</th>
+            </tr></thead>
+            <tbody id="table-performance"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== ALERTES ===== -->
+    <section class="vue" data-section="alertes" hidden>
+      <div class="carte">
+        <div class="carte-entete">
+          <div><h2>Toutes les alertes</h2><p>Les nouvelles alertes apparaissent en direct, avec un signal sonore.</p></div>
+          <div class="export">
+            <select class="champ" id="export-jours" aria-label="Période exportée">
+              <option value="7">7 derniers jours</option>
+              <option value="30" selected>30 derniers jours</option>
+              <option value="90">90 derniers jours</option>
+              <option value="365">12 derniers mois</option>
+            </select>
+            <button type="button" class="btn btn-doux" id="btn-export">⬇ Export Excel (CSV)</button>
+          </div>
+        </div>
+        <div class="barre-outils">
+          <input class="champ" type="search" id="recherche-alertes" placeholder="Rechercher un lieu, un hôpital, une description…">
+          <div class="segments" id="filtre-alertes">
+            <button type="button" class="segment actif" data-statut="toutes">Toutes</button>
+            <button type="button" class="segment" data-statut="envoyee">En attente</button>
+            <button type="button" class="segment" data-statut="cours">🚑 En cours</button>
+            <button type="button" class="segment" data-statut="acceptee">Acceptées</button>
+            <button type="button" class="segment" data-statut="refusee">Refusées</button>
+          </div>
+        </div>
+        <div class="tableau-wrap">
+          <table>
+            <thead><tr><th>Heure</th><th>Gravité</th><th>Lieu et description</th><th>Hôpital</th><th>Statut</th><th class="nombre">Délai</th></tr></thead>
+            <tbody id="table-alertes"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== HÔPITAUX ===== -->
+    <section class="vue" data-section="hopitaux" hidden>
+      <div class="carte">
+        <div class="carte-entete">
+          <div><h2>Établissements</h2><p>Ajoutez, modifiez ou retirez les hôpitaux visibles par les témoins.</p></div>
+          <button type="button" class="btn btn-bleu" id="btn-ajout-hopital">+ Ajouter un hôpital</button>
+        </div>
+        <div class="barre-outils">
+          <input class="champ" type="search" id="recherche-hopitaux" placeholder="Rechercher un hôpital, un quartier, une spécialité…">
+        </div>
+        <div class="tableau-wrap">
+          <table>
+            <thead><tr><th>Établissement</th><th>Spécialités</th><th>Statut</th><th class="nombre">Lits</th><th></th></tr></thead>
+            <tbody id="table-hopitaux"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== COMPTES ===== -->
+    <section class="vue" data-section="comptes" hidden>
+      <div class="carte">
+        <div class="carte-entete">
+          <div><h2>Comptes utilisateurs</h2><p>Agents des urgences et administrateurs. Changer un mot de passe déconnecte ses appareils.</p></div>
+          <button type="button" class="btn btn-bleu" id="btn-ajout-compte">+ Ajouter un agent</button>
+        </div>
+        <div class="tableau-wrap">
+          <table>
+            <thead><tr><th>Identifiant</th><th>Rôle</th><th>Établissement</th><th class="nombre">Sessions actives</th><th></th></tr></thead>
+            <tbody id="table-comptes"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== LIEUX ===== -->
+    <section class="vue" data-section="lieux" hidden>
+      <div class="carte">
+        <div class="carte-entete"><div><h2>Lieux de Lomé</h2><p id="lieux-info">Lieux proposés au témoin dans la recherche de localisation.</p></div></div>
+        <form class="ajout-lieu" id="form-lieu">
+          <input class="champ" type="text" id="nouveau-lieu" maxlength="100" placeholder="Nom du lieu, ex : Carrefour Atikoumé">
+          <select class="champ" id="groupe-lieu">
+            <option>Quartiers</option>
+            <option>Carrefours &amp; repères</option>
+            <option>Axes routiers</option>
+          </select>
+          <button type="submit" class="btn btn-bleu">+ Ajouter</button>
+        </form>
+        <input class="champ" type="search" id="recherche-lieux" placeholder="Filtrer les lieux…">
+        <div id="liste-lieux"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="modale-racine"></div>
+  <div class="toast-container" id="toasts" aria-live="assertive"></div>
+
+  <script src="/commun/commun.js"></script>
+  <script>
+    'use strict';
+
+    /* =========================================================
+       1. CONFIGURATION ET ÉTAT (API, URL_WS, $, GRAVITES, toasts : commun/commun.js)
+       ========================================================= */
+
+    const STATUTS = { disponible: '🟢 Disponible', limite: '🟡 Limité', sature: '🔴 Saturé' };
+    const STATUTS_ALERTE = { envoyee: '⏳ En attente', acceptee: '✓ Acceptée', refusee: '✕ Refusée' };
+    const TYPES = { public: ['PUB', 'Public'], prive: ['PRV', 'Privé'], polyclinique: ['POLY', 'Polyclinique'] };
+
+    const etat = {
+      token: localStorage.getItem('urgence_token_admin'),
+      identifiant: localStorage.getItem('urgence_identifiant_admin'),
+      vue: 'ensemble',
+      stats: null,
+      alertes: [],
+      hopitaux: [],
+      comptes: [],
+      lieux: [],
+      filtreAlertes: 'toutes',
+      nouvelles: new Set(),
+      discussionsOuvertes: new Set(),   // alertes dont la discussion est dépliée
+      ws: null,
+      tentativesWs: 0,
+      minuteurStats: null
+    };
+
+    /* =========================================================
+       2. OUTILS
+       ========================================================= */
+    function normaliser(texte) {
+      return String(texte ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    const dateHeure = (iso) => new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+    function duree(secondes) {
+      if (secondes == null) return '—';
+      if (secondes < 60) return `${Math.round(secondes)} s`;
+      if (secondes < 3600) return `${Math.floor(secondes / 60)} min ${String(Math.round(secondes % 60)).padStart(2, '0')}`;
+      return `${Math.floor(secondes / 3600)} h ${String(Math.round((secondes % 3600) / 60)).padStart(2, '0')}`;
+    }
+
+    const tagType = (type) => `<span class="tag-type ${type}" title="${TYPES[type][1]}">${TYPES[type][0]}</span>`;
+
+    // Transforme "Clinique Sainte-Anne" en "clinique-sainte-anne" (code de l'hôpital)
+    function creerCode(nom) {
+      return normaliser(nom).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+    }
+
+    function genererMotDePasse() {
+      const caracteres = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const valeurs = crypto.getRandomValues(new Uint32Array(10));
+      return Array.from(valeurs, v => caracteres[v % caracteres.length]).join('');
+    }
+
+    async function api(chemin, options = {}) {
+      const reponse = await fetch(API + chemin, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(etat.token ? { Authorization: `Bearer ${etat.token}` } : {}),
+          ...options.headers
+        }
+      });
+      const donnees = await reponse.json().catch(() => ({}));
+      if (reponse.status === 401 && etat.token) {
+        deconnexionLocale();
+        afficherToast('attention', 'Session expirée', 'Veuillez vous reconnecter.');
+      }
+      if (!reponse.ok) {
+        // Pydantic renvoie une liste d'erreurs détaillées pour les données invalides
+        const detail = Array.isArray(donnees.detail)
+          ? donnees.detail.map(d => `${d.loc?.slice(-1)[0] ?? ''} : ${d.msg}`).join(' · ')
+          : donnees.detail;
+        throw new Error(detail || 'Erreur du serveur.');
+      }
+      return donnees;
+    }
+
+    function bip() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [0, 0.22].forEach(debut => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.frequency.value = 760;
+          gain.gain.setValueAtTime(0.0001, ctx.currentTime + debut);
+          gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + debut + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + debut + 0.16);
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(ctx.currentTime + debut);
+          osc.stop(ctx.currentTime + debut + 0.18);
+        });
+      } catch { /* son non disponible */ }
+    }
+
+    /* =========================================================
+       3. CONNEXION
+       ========================================================= */
+    $('form-connexion').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const erreur = $('erreur-connexion');
+      const bouton = $('btn-connexion');
+      bouton.disabled = true;
+      bouton.innerHTML = '<span class="mini-spinner"></span> Connexion…';
+      try {
+        const session = await api('/api/connexion', {
+          method: 'POST',
+          body: JSON.stringify({ identifiant: $('identifiant').value.trim(), mot_de_passe: $('mot-de-passe').value })
+        });
+        if (session.role !== 'admin') {
+          await fetch(API + '/api/deconnexion', { method: 'POST', headers: { Authorization: `Bearer ${session.token}` } });
+          throw new Error('Ce compte n\'est pas un compte administrateur.');
+        }
+        etat.token = session.token;
+        etat.identifiant = session.identifiant;
+        localStorage.setItem('urgence_token_admin', session.token);
+        localStorage.setItem('urgence_identifiant_admin', session.identifiant);
+        $('mot-de-passe').value = '';
+        erreur.hidden = true;
+        await ouvrirApplication();
+        afficherToast('succes', 'Bienvenue', 'Vous êtes connecté à l\'espace administrateur.');
+      } catch (err) {
+        erreur.textContent = err.message;
+        erreur.hidden = false;
+      } finally {
+        bouton.disabled = false;
+        bouton.textContent = 'Se connecter';
+      }
+    });
+
+    $('btn-deconnexion').addEventListener('click', async () => {
+      try { await api('/api/deconnexion', { method: 'POST' }); } catch { /* déjà expirée */ }
+      deconnexionLocale();
+    });
+
+    function deconnexionLocale() {
+      etat.token = null;
+      localStorage.removeItem('urgence_token_admin');
+      localStorage.removeItem('urgence_identifiant_admin');
+      if (etat.ws) { etat.ws.onclose = null; etat.ws.close(); etat.ws = null; }
+      majEtatConnexion(false);
+      $('application').hidden = true;
+      $('nav').hidden = true;
+      $('btn-deconnexion').hidden = true;
+      $('ecran-connexion').hidden = false;
+    }
+
+    async function ouvrirApplication() {
+      await Promise.all([chargerStats(), chargerAlertes(), chargerHopitaux(), chargerComptes(), chargerLieux()]);
+      $('ecran-connexion').hidden = true;
+      $('application').hidden = false;
+      $('nav').hidden = false;
+      $('btn-deconnexion').hidden = false;
+      afficherVue(etat.vue);
+      connecterTempsReel();
+    }
+
+    /* =========================================================
+       4. NAVIGATION ENTRE LES SECTIONS
+       ========================================================= */
+    function afficherVue(vue) {
+      etat.vue = vue;
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('actif', b.dataset.vue === vue));
+      document.querySelectorAll('[data-section]').forEach(s => { s.hidden = s.dataset.section !== vue; });
+    }
+    document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => afficherVue(b.dataset.vue)));
+    $('btn-voir-comptes').addEventListener('click', () => afficherVue('comptes'));
+
+    // Téléchargement via fetch : le lien direct n'enverrait pas le jeton de connexion
+    $('btn-export').addEventListener('click', async () => {
+      const bouton = $('btn-export');
+      bouton.disabled = true;
+      try {
+        const reponse = await fetch(`${API}/api/admin/export.csv?jours=${$('export-jours').value}`, {
+          headers: { Authorization: `Bearer ${etat.token}` }
+        });
+        if (!reponse.ok) throw new Error((await reponse.json().catch(() => ({}))).detail || 'Export impossible.');
+        const nom = /filename="([^"]+)"/.exec(reponse.headers.get('Content-Disposition') || '')?.[1] || 'alertes.csv';
+        const lien = document.createElement('a');
+        lien.href = URL.createObjectURL(await reponse.blob());
+        lien.download = nom;
+        lien.click();
+        setTimeout(() => URL.revokeObjectURL(lien.href), 1000);
+        afficherToast('succes', 'Export prêt', `${nom} : ouvrez-le avec Excel ou LibreOffice.`);
+      } catch (err) {
+        afficherToast('critique', 'Export impossible', err.message);
+      } finally {
+        bouton.disabled = false;
+      }
+    });
+
+    /* =========================================================
+       5. CHARGEMENT DES DONNÉES
+       ========================================================= */
+    async function chargerStats() { etat.stats = await api('/api/admin/tableau-de-bord'); afficherEnsemble(); }
+    async function chargerAlertes() { etat.alertes = await api('/api/admin/alertes'); afficherAlertes(); }
+    async function chargerHopitaux() { etat.hopitaux = await api('/api/hopitaux'); afficherHopitaux(); }
+    async function chargerComptes() { etat.comptes = await api('/api/admin/utilisateurs'); afficherComptes(); }
+    async function chargerLieux() { etat.lieux = await api('/api/lieux'); afficherLieux(); }
+
+    // Regroupe plusieurs événements rapprochés en une seule actualisation des statistiques
+    function actualiserStatsBientot() {
+      clearTimeout(etat.minuteurStats);
+      etat.minuteurStats = setTimeout(() => chargerStats().catch(() => {}), 800);
+    }
+
+    $('btn-actualiser').addEventListener('click', async () => {
+      await Promise.all([chargerStats(), chargerAlertes(), chargerHopitaux()]);
+      afficherToast('info', 'Données actualisées', 'Les statistiques sont à jour.', 2500);
+    });
+
+    /* =========================================================
+       6. VUE D'ENSEMBLE
+       ========================================================= */
+    function lignesBarres(lignes, max) {
+      if (!lignes.length) return '<div class="vide">Aucune donnée pour le moment.</div>';
+      return lignes.map(l => `
+        <div class="ligne-barre">
+          <span class="nom" title="${echapperHTML(l.nom)}">${l.nomHTML ?? echapperHTML(l.nom)}</span>
+          <div class="piste"><div class="remplissage ${l.classe || ''}" data-largeur="${max ? (l.n / max) * 100 : 0}"></div></div>
+          <span class="n">${l.n}</span>
+        </div>`).join('');
+    }
+
+    // Les barres partent de 0 puis s'allongent en douceur
+    function animerBarres() {
+      requestAnimationFrame(() => setTimeout(() => {
+        document.querySelectorAll('[data-largeur]').forEach(b => { b.style.width = b.dataset.largeur + '%'; });
+        document.querySelectorAll('[data-hauteur]').forEach(b => { b.style.height = b.dataset.hauteur + '%'; });
+      }, 30));
+    }
+
+    function afficherEnsemble() {
+      const s = etat.stats;
+      if (!s) return;
+      const reponses = s.par_statut.acceptee + s.par_statut.refusee;
+      const satures = s.hopitaux.filter(h => h.statut === 'sature').length;
+
+      $('kpi-jour').textContent = s.aujourdhui;
+      $('kpi-total').textContent = `${s.total} au total`;
+      $('kpi-attente').textContent = s.par_statut.envoyee;
+      $('kpi-taux').textContent = reponses ? Math.round(s.par_statut.acceptee / reponses * 100) + ' %' : '—';
+      $('kpi-taux-detail').textContent = reponses ? `${s.par_statut.acceptee} acceptées sur ${reponses} réponses` : 'aucune réponse';
+      $('kpi-delai').textContent = duree(s.delai_moyen);
+      $('kpi-satures').textContent = satures;
+      $('kpi-satures-detail').textContent = `sur ${s.hopitaux.length} établissements`;
+      $('kpi-arrivee').textContent = duree(s.delai_arrivee);
+      $('kpi-flotte').textContent = s.flotte.total;
+      $('kpi-flotte-detail').textContent = `${s.flotte.en_mission} en mission · ${s.flotte.total - s.flotte.en_mission} libre(s)`;
+      $('kpi-fausses').textContent = s.fausses_alertes;
+      $('kpi-fausses-detail').textContent = s.total ? `${Math.round(s.fausses_alertes / s.total * 100)} % des alertes` : 'signalées par les équipes';
+
+      const demo = s.comptes_demo || [];
+      $('bandeau-demo').hidden = !demo.length;
+      $('texte-demo').textContent = demo.length
+        ? `⚠ ${demo.length} compte${demo.length > 1 ? 's' : ''} utilise${demo.length > 1 ? 'nt' : ''} encore le mot de passe de démonstration (${demo.slice(0, 4).join(', ')}${demo.length > 4 ? '…' : ''}). Changez-les avant une utilisation réelle.`
+        : '';
+
+      const maxHeure = Math.max(1, ...s.par_heure);
+      $('graph-heures').innerHTML = s.par_heure.map((n, h) => `
+        <div class="colonne" title="${h} h – ${h + 1} h : ${n} alerte(s)">
+          <span class="valeur">${n || ''}</span>
+          <div class="barre" style="height:0" data-hauteur="${(n / maxHeure) * 100}"></div>
+          <span class="jour">${h % 3 === 0 ? h + 'h' : ''}</span>
+        </div>`).join('');
+
+      const attente = s.par_statut.envoyee;
+      $('nav-attente').hidden = attente === 0;
+      $('nav-attente').textContent = attente;
+
+      // Histogramme des 7 jours
+      const maxJour = Math.max(1, ...s.par_jour.map(j => j.n));
+      $('graph-jours').innerHTML = s.par_jour.map(j => {
+        const libelle = new Date(j.jour + 'T12:00:00Z').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', timeZone: 'UTC' });
+        return `
+          <div class="colonne">
+            <span class="valeur">${j.n}</span>
+            <div class="barre" style="height:0" data-hauteur="${(j.n / maxJour) * 100}"></div>
+            <span class="jour">${libelle}</span>
+          </div>`;
+      }).join('');
+
+      const maxLieu = Math.max(0, ...s.top_lieux.map(l => l.n));
+      $('graph-lieux').innerHTML = lignesBarres(s.top_lieux.map(l => ({ nom: `📍 ${l.lieu}`, n: l.n })), maxLieu);
+
+      const gravites = Object.entries(s.par_gravite).map(([g, n]) => ({ nom: GRAVITES[g], n, classe: g }));
+      $('graph-gravite').innerHTML = s.total
+        ? lignesBarres(gravites, Math.max(...gravites.map(g => g.n)))
+        : '<div class="vide">Aucune alerte enregistrée.</div>';
+
+      const dispo = ['disponible', 'limite', 'sature'].map(st => ({ nom: STATUTS[st], n: s.hopitaux.filter(h => h.statut === st).length, classe: st }));
+      $('graph-dispo').innerHTML = lignesBarres(dispo, s.hopitaux.length);
+
+      $('table-performance').innerHTML = s.hopitaux.map(h => `
+        <tr>
+          <td>${tagType(h.type)} <strong>${echapperHTML(h.nom)}</strong></td>
+          <td><span class="badge ${h.statut}">${STATUTS[h.statut]}</span></td>
+          <td class="nombre"><strong>${h.total}</strong></td>
+          <td class="nombre">${h.acceptees}</td>
+          <td class="nombre">${h.refusees}</td>
+          <td class="nombre">${h.en_attente ? `<span class="badge envoyee">${h.en_attente}</span>` : 0}</td>
+          <td class="nombre">${duree(h.delai_moyen)}</td>
+          <td class="nombre">${duree(h.delai_arrivee)}</td>
+          <td class="nombre">${h.fausses_alertes ? `<span class="badge fausse">${h.fausses_alertes}</span>` : 0}</td>
+          <td class="nombre">${h.saturations}</td>
+        </tr>`).join('');
+
+      animerBarres();
+    }
+
+    /* =========================================================
+       7. ALERTES
+       ========================================================= */
+    const ETAPES_AMBULANCE = { en_route: '🚑 Ambulance en route', sur_place: '📍 Ambulance sur place', terminee: '🏥 Patient à l\'hôpital' };
+    const AUTEURS = { temoin: '👤 Témoin', ambulance: '🚑 Ambulancier', hopital: '🏥 Hôpital' };
+    const enCours = (a) => a.statut === 'acceptee' && a.amb_statut !== 'terminee'
+      && Date.now() - new Date(a.repondu_a) < 6 * 3600 * 1000;
+
+    function infosInterventionHTML(a) {
+      if (a.statut !== 'acceptee') return '';
+      const messages = a.messages || [];
+      const graves = messages.some(m => m.grave);
+      const morceaux = [
+        a.amb_statut ? `<span class="ambulance">${ETAPES_AMBULANCE[a.amb_statut]}</span>` : '',
+        a.temoin_tel ? `<span>👤 ${echapperHTML(a.temoin_nom || 'Témoin')} · <a href="tel:${echapperHTML(a.temoin_tel)}">${echapperHTML(a.temoin_tel)}</a></span>` : '',
+        a.gravite_maj_a ? `<span class="grav-maj">⚠ Gravité relevée à ${heureCourte(a.gravite_maj_a)}</span>` : '',
+        `<button type="button" class="btn-discussion ${graves ? 'alerte-grave' : ''}" data-discussion="${a.id}">
+          💬 ${etat.discussionsOuvertes.has(a.id) ? 'Masquer' : 'Voir'} la discussion (${messages.length})</button>`
+      ];
+      return `<div class="infos-intervention">${morceaux.join('')}</div>`;
+    }
+
+    function discussionHTML(a) {
+      const messages = a.messages || [];
+      const liste = messages.length ? messages.map(m => `
+        <li class="disc-msg ${m.auteur === 'temoin' ? '' : 'equipe'} ${m.grave ? 'grave' : ''}">
+          <span class="disc-auteur">${AUTEURS[m.auteur]} · ${heureCourte(m.cree_a)}</span>${echapperHTML(m.texte)}
+        </li>`).join('') : '<li class="disc-vide">Aucun message échangé pour cette intervention.</li>';
+      return `<tr class="ligne-discussion"><td colspan="6"><ul class="disc-liste" data-liste="${a.id}">${liste}</ul></td></tr>`;
+    }
+
+    function afficherAlertes() {
+      const q = normaliser($('recherche-alertes').value.trim());
+      const visibles = etat.alertes.filter(a =>
+        (etat.filtreAlertes === 'toutes' || a.statut === etat.filtreAlertes || (etat.filtreAlertes === 'cours' && enCours(a))) &&
+        (!q || normaliser([a.lieu, a.description, a.diagnostic, a.hopital_nom, ...(a.messages || []).map(m => m.texte)].join(' ')).includes(q)));
+
+      if (!visibles.length) {
+        $('table-alertes').innerHTML = '<tr><td colspan="6"><div class="vide">Aucune alerte à afficher.</div></td></tr>';
+        return;
+      }
+      $('table-alertes').innerHTML = visibles.map(a => {
+        const delai = a.repondu_a ? (new Date(a.repondu_a) - new Date(a.cree_a)) / 1000 : null;
+        return `
+          <tr class="${etat.nouvelles.has(a.id) ? 'nouvelle' : ''}">
+            <td style="white-space:nowrap">${dateHeure(a.cree_a)}</td>
+            <td><span class="badge ${a.gravite}">${GRAVITES[a.gravite]}</span></td>
+            <td>
+              <strong>📍 ${echapperHTML(a.lieu)}</strong>
+              <small>${echapperHTML(a.description)}</small>
+              ${a.diagnostic ? `<small>✦ ${echapperHTML(a.diagnostic)}</small>` : ''}
+              ${infosInterventionHTML(a)}
+            </td>
+            <td>${echapperHTML(a.hopital_nom)}</td>
+            <td>
+              <span class="badge ${a.statut}">${STATUTS_ALERTE[a.statut]}</span>
+              ${a.fausse_alerte ? '<span class="badge fausse">🚫 Fausse alerte</span>' : ''}
+              ${a.motif ? `<small>${echapperHTML(a.motif)}</small>` : ''}
+              ${a.temoin_fausses_alertes ? `<span class="antecedents">⚠ Numéro déjà signalé ${a.temoin_fausses_alertes} fois</span>` : ''}
+              ${a.ambulance_nom ? `<small>🚑 ${echapperHTML(a.ambulance_nom)}</small>` : ''}
+            </td>
+            <td class="nombre">${duree(delai)}</td>
+          </tr>
+          ${a.statut === 'acceptee' && etat.discussionsOuvertes.has(a.id) ? discussionHTML(a) : ''}`;
+      }).join('');
+      document.querySelectorAll('[data-liste]').forEach(liste => { liste.scrollTop = liste.scrollHeight; });
+    }
+
+    $('table-alertes').addEventListener('click', (e) => {
+      const bouton = e.target.closest('[data-discussion]');
+      if (!bouton) return;
+      const id = Number(bouton.dataset.discussion);
+      if (etat.discussionsOuvertes.has(id)) etat.discussionsOuvertes.delete(id);
+      else etat.discussionsOuvertes.add(id);
+      afficherAlertes();
+    });
+
+    $('recherche-alertes').addEventListener('input', afficherAlertes);
+    $('filtre-alertes').addEventListener('click', (e) => {
+      const bouton = e.target.closest('.segment');
+      if (!bouton) return;
+      etat.filtreAlertes = bouton.dataset.statut;
+      $('filtre-alertes').querySelectorAll('.segment').forEach(b => b.classList.toggle('actif', b === bouton));
+      afficherAlertes();
+    });
+
+    /* =========================================================
+       8. HÔPITAUX
+       ========================================================= */
+    function afficherHopitaux() {
+      const q = normaliser($('recherche-hopitaux').value.trim());
+      const visibles = etat.hopitaux.filter(h =>
+        !q || normaliser([h.nom, h.quartier, h.id, ...h.specialites].join(' ')).includes(q));
+
+      $('table-hopitaux').innerHTML = visibles.length ? visibles.map(h => `
+        <tr>
+          <td>${tagType(h.type)} <strong>${echapperHTML(h.nom)}</strong><small>📍 ${echapperHTML(h.quartier)} · code : ${echapperHTML(h.id)}${h.telephone ? ' · 📞 ' + echapperHTML(h.telephone) : ''}</small></td>
+          <td><div class="chips">${h.specialites.map(s => `<span class="chip">${echapperHTML(s)}</span>`).join('')}</div></td>
+          <td><span class="badge ${h.statut}">${STATUTS[h.statut]}</span></td>
+          <td class="nombre">${h.lits}</td>
+          <td><div class="actions">
+            <button type="button" class="btn btn-doux btn-petit" data-modifier="${echapperHTML(h.id)}">Modifier</button>
+            <button type="button" class="btn btn-danger btn-petit" data-supprimer="${echapperHTML(h.id)}">Supprimer</button>
+          </div></td>
+        </tr>`).join('')
+        : '<tr><td colspan="5"><div class="vide">Aucun établissement trouvé.</div></td></tr>';
+    }
+
+    $('recherche-hopitaux').addEventListener('input', afficherHopitaux);
+    $('btn-ajout-hopital').addEventListener('click', () => formulaireHopital(null));
+
+    $('table-hopitaux').addEventListener('click', (e) => {
+      const modifier = e.target.closest('[data-modifier]');
+      const supprimer = e.target.closest('[data-supprimer]');
+      if (modifier) formulaireHopital(etat.hopitaux.find(h => h.id === modifier.dataset.modifier));
+      if (supprimer) {
+        const h = etat.hopitaux.find(x => x.id === supprimer.dataset.supprimer);
+        confirmer(`Supprimer ${h.nom} ?`,
+          'L\'établissement et ses comptes seront supprimés. Ce n\'est possible que s\'il n\'a reçu aucune alerte.',
+          'Supprimer', async () => {
+            await api(`/api/admin/hopitaux/${encodeURIComponent(h.id)}`, { method: 'DELETE' });
+            await Promise.all([chargerHopitaux(), chargerComptes(), chargerStats()]);
+            afficherToast('succes', 'Établissement supprimé', h.nom);
+          });
+      }
+    });
+
+    function toutesLesSpecialites() {
+      return [...new Set(etat.hopitaux.flatMap(h => h.specialites))].sort((a, b) => a.localeCompare(b, 'fr'));
+    }
+
+    function formulaireHopital(hopital) {
+      const creation = !hopital;
+      const h = hopital || { nom: '', type: 'public', quartier: '', specialites: [], telephone: '' };
+
+      ouvrirModale({
+        titre: creation ? 'Ajouter un hôpital' : `Modifier ${h.nom}`,
+        description: creation ? 'Un compte des urgences sera créé automatiquement pour cet établissement.' : 'Les témoins verront les changements immédiatement.',
+        contenu: `
+          <div class="field"><label for="f-nom">Nom de l'établissement</label>
+            <input class="champ" id="f-nom" maxlength="120" value="${echapperHTML(h.nom)}" placeholder="Ex : Clinique Sainte-Anne"></div>
+          ${creation ? `
+          <div class="field"><label for="f-code">Code (identifiant de connexion)</label>
+            <input class="champ" id="f-code" maxlength="40" placeholder="ex : clinique-sainte-anne">
+            <small>Lettres minuscules, chiffres et tirets. Rempli automatiquement depuis le nom.</small></div>` : ''}
+          <div class="field"><label for="f-type">Type</label>
+            <select class="champ" id="f-type">
+              ${Object.entries(TYPES).map(([v, [, libelle]]) => `<option value="${v}" ${h.type === v ? 'selected' : ''}>${libelle}</option>`).join('')}
+            </select></div>
+          <div class="field"><label for="f-quartier">Quartier</label>
+            <input class="champ" id="f-quartier" maxlength="80" value="${echapperHTML(h.quartier)}" placeholder="Ex : Bè"></div>
+          <div class="field"><label for="f-tel">Téléphone des urgences</label>
+            <input class="champ" id="f-tel" type="tel" maxlength="25" value="${echapperHTML(h.telephone || '')}" placeholder="Ex : 22 21 25 01">
+            <small>Affiché au témoin quand l'hôpital accepte son alerte. Facultatif.</small></div>
+          <div class="field"><label for="f-gps">Position GPS (latitude, longitude)</label>
+            <input class="champ" id="f-gps" value="${h.lat != null ? `${h.lat}, ${h.lng}` : ''}" placeholder="Ex : 6.1427, 1.2073">
+            <small>Clic droit sur l'établissement dans Google Maps, puis copiez les coordonnées. Laissez vide si inconnue.</small></div>
+          <div class="field"><label for="f-specialites">Spécialités (séparées par des virgules)</label>
+            <input class="champ" id="f-specialites" value="${echapperHTML(h.specialites.join(', '))}" placeholder="Ex : Urgences générales, Maternité">
+            <div class="suggestions-spec" id="f-suggestions"></div></div>
+          ${creation ? `
+          <div class="field"><label for="f-mdp">Mot de passe du compte des urgences</label>
+            <div class="ligne-champ">
+              <input class="champ" id="f-mdp" value="${genererMotDePasse()}" minlength="8">
+              <button type="button" class="btn btn-gris" id="f-generer">Générer</button>
+            </div>
+            <small>Au moins 8 caractères. Notez-le pour le transmettre à l'hôpital.</small></div>` : ''}`,
+        libelleValider: creation ? 'Ajouter l\'hôpital' : 'Enregistrer',
+        apresOuverture: () => {
+          const champSpec = $('f-specialites');
+          const lireSpecs = () => champSpec.value.split(',').map(s => s.trim()).filter(Boolean);
+          const afficherSuggestions = () => {
+            const actuelles = lireSpecs();
+            $('f-suggestions').innerHTML = toutesLesSpecialites().map(s =>
+              `<button type="button" class="${actuelles.includes(s) ? 'actif' : ''}">${echapperHTML(s)}</button>`).join('');
+          };
+          $('f-suggestions').addEventListener('click', (e) => {
+            const b = e.target.closest('button');
+            if (!b) return;
+            const actuelles = lireSpecs();
+            const s = b.textContent;
+            champSpec.value = (actuelles.includes(s) ? actuelles.filter(x => x !== s) : [...actuelles, s]).join(', ');
+            afficherSuggestions();
+          });
+          champSpec.addEventListener('input', afficherSuggestions);
+          afficherSuggestions();
+
+          if (creation) {
+            let codeModifie = false;
+            $('f-code').addEventListener('input', () => { codeModifie = true; });
+            $('f-nom').addEventListener('input', () => { if (!codeModifie) $('f-code').value = creerCode($('f-nom').value); });
+            $('f-generer').addEventListener('click', () => { $('f-mdp').value = genererMotDePasse(); });
+          }
+          $('f-nom').focus();
+        },
+        valider: async () => {
+          const gps = $('f-gps').value.trim();
+          const [lat, lng] = gps ? gps.split(/[,;\s]+/).map(Number) : [null, null];
+          if (gps && !(lat >= 6 && lat <= 11.2 && lng >= -0.2 && lng <= 1.9)) {
+            throw new Error('Position GPS invalide : écrivez « latitude, longitude » au Togo, ex : 6.1427, 1.2073.');
+          }
+          const fiche = {
+            nom: $('f-nom').value.trim(),
+            type: $('f-type').value,
+            quartier: $('f-quartier').value.trim(),
+            specialites: $('f-specialites').value.split(',').map(s => s.trim()).filter(Boolean),
+            telephone: $('f-tel').value.trim() || null,
+            lat,
+            lng
+          };
+          if (creation) {
+            const motDePasse = $('f-mdp').value;
+            await api('/api/admin/hopitaux', {
+              method: 'POST',
+              body: JSON.stringify({ ...fiche, id: $('f-code').value.trim(), mot_de_passe: motDePasse })
+            });
+            afficherToast('succes', 'Hôpital ajouté', `${fiche.nom} est visible par les témoins. Mot de passe du compte : ${motDePasse}`, 12000);
+          } else {
+            await api(`/api/admin/hopitaux/${encodeURIComponent(h.id)}`, { method: 'PUT', body: JSON.stringify(fiche) });
+            afficherToast('succes', 'Modifications enregistrées', fiche.nom);
+          }
+          await Promise.all([chargerHopitaux(), chargerComptes(), chargerStats()]);
+        }
+      });
+    }
+
+    /* =========================================================
+       9. COMPTES
+       ========================================================= */
+    function afficherComptes() {
+      $('table-comptes').innerHTML = etat.comptes.map(c => `
+        <tr>
+          <td><strong>${echapperHTML(c.identifiant)}</strong>${c.identifiant === etat.identifiant ? '<small>(vous)</small>' : ''}</td>
+          <td><span class="badge ${c.role}">${c.role === 'admin' ? 'Administrateur' : 'Agent des urgences'}</span></td>
+          <td>${c.hopital_nom ? echapperHTML(c.hopital_nom) : '—'}</td>
+          <td class="nombre">${c.sessions}</td>
+          <td><div class="actions">
+            <button type="button" class="btn btn-doux btn-petit" data-mdp="${c.id}">Mot de passe</button>
+            ${c.identifiant === etat.identifiant ? '' : `<button type="button" class="btn btn-danger btn-petit" data-supprimer-compte="${c.id}">Supprimer</button>`}
+          </div></td>
+        </tr>`).join('');
+    }
+
+    $('table-comptes').addEventListener('click', (e) => {
+      const mdp = e.target.closest('[data-mdp]');
+      const supprimer = e.target.closest('[data-supprimer-compte]');
+      if (mdp) {
+        const c = etat.comptes.find(x => x.id === Number(mdp.dataset.mdp));
+        ouvrirModale({
+          titre: `Nouveau mot de passe pour ${c.identifiant}`,
+          description: 'Les appareils connectés avec ce compte seront déconnectés.',
+          contenu: `
+            <div class="field"><label for="f-mdp">Nouveau mot de passe</label>
+              <div class="ligne-champ">
+                <input class="champ" id="f-mdp" value="${genererMotDePasse()}" minlength="8">
+                <button type="button" class="btn btn-gris" id="f-generer">Générer</button>
+              </div>
+              <small>Au moins 8 caractères.</small></div>`,
+          libelleValider: 'Changer le mot de passe',
+          apresOuverture: () => { $('f-generer').addEventListener('click', () => { $('f-mdp').value = genererMotDePasse(); }); $('f-mdp').select(); },
+          valider: async () => {
+            const motDePasse = $('f-mdp').value;
+            await api(`/api/admin/utilisateurs/${c.id}/mot-de-passe`, { method: 'PUT', body: JSON.stringify({ mot_de_passe: motDePasse }) });
+            if (c.identifiant === etat.identifiant) {
+              deconnexionLocale();
+              afficherToast('info', 'Mot de passe changé', 'Reconnectez-vous avec votre nouveau mot de passe.');
+              return;
+            }
+            await Promise.all([chargerComptes(), chargerStats()]);
+            afficherToast('succes', 'Mot de passe changé', `${c.identifiant} : ${motDePasse}`, 12000);
+          }
+        });
+      }
+      if (supprimer) {
+        const c = etat.comptes.find(x => x.id === Number(supprimer.dataset.supprimerCompte));
+        confirmer(`Supprimer le compte ${c.identifiant} ?`, 'Cette personne ne pourra plus se connecter.', 'Supprimer', async () => {
+          await api(`/api/admin/utilisateurs/${c.id}`, { method: 'DELETE' });
+          await chargerComptes();
+          afficherToast('succes', 'Compte supprimé', c.identifiant);
+        });
+      }
+    });
+
+    $('btn-ajout-compte').addEventListener('click', () => {
+      ouvrirModale({
+        titre: 'Ajouter un agent des urgences',
+        description: 'Utile quand plusieurs personnes d\'un même hôpital doivent recevoir les alertes.',
+        contenu: `
+          <div class="field"><label for="f-hopital">Établissement</label>
+            <select class="champ" id="f-hopital">
+              ${etat.hopitaux.map(h => `<option value="${echapperHTML(h.id)}">${echapperHTML(h.nom)}</option>`).join('')}
+            </select></div>
+          <div class="field"><label for="f-identifiant">Identifiant</label>
+            <input class="champ" id="f-identifiant" maxlength="40" placeholder="ex : chu-so.nuit">
+            <small>Lettres minuscules, chiffres, points, tirets (3 caractères minimum).</small></div>
+          <div class="field"><label for="f-mdp">Mot de passe</label>
+            <div class="ligne-champ">
+              <input class="champ" id="f-mdp" value="${genererMotDePasse()}" minlength="8">
+              <button type="button" class="btn btn-gris" id="f-generer">Générer</button>
+            </div></div>`,
+        libelleValider: 'Créer le compte',
+        apresOuverture: () => {
+          $('f-generer').addEventListener('click', () => { $('f-mdp').value = genererMotDePasse(); });
+          $('f-identifiant').focus();
+        },
+        valider: async () => {
+          const compte = { hopital_id: $('f-hopital').value, identifiant: $('f-identifiant').value.trim().toLowerCase(), mot_de_passe: $('f-mdp').value };
+          await api('/api/admin/utilisateurs', { method: 'POST', body: JSON.stringify(compte) });
+          await chargerComptes();
+          afficherToast('succes', 'Compte créé', `${compte.identifiant} / ${compte.mot_de_passe}`, 12000);
+        }
+      });
+    });
+
+    /* =========================================================
+       10. LIEUX
+       ========================================================= */
+    const GROUPES_LIEUX = ['Quartiers', 'Carrefours & repères', 'Axes routiers'];
+
+    function afficherLieux() {
+      const q = normaliser($('recherche-lieux').value.trim());
+      $('lieux-info').textContent = `${etat.lieux.length} lieux proposés au témoin dans la recherche de localisation.`;
+      $('liste-lieux').innerHTML = GROUPES_LIEUX.map(groupe => {
+        const lieux = etat.lieux.filter(l => l.groupe === groupe && (!q || normaliser(l.nom).includes(q)));
+        if (!lieux.length) return '';
+        return `
+          <div class="groupe-lieux">
+            <h3>${groupe} · ${lieux.length}</h3>
+            <div class="chips">
+              ${lieux.map(l => `<span class="chip-lieu">${echapperHTML(l.nom)}<button type="button" data-supprimer-lieu="${l.id}" aria-label="Supprimer ${echapperHTML(l.nom)}">×</button></span>`).join('')}
+            </div>
+          </div>`;
+      }).join('') || '<div class="vide" style="margin-top:16px">Aucun lieu trouvé.</div>';
+    }
+
+    $('recherche-lieux').addEventListener('input', afficherLieux);
+
+    $('form-lieu').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nom = $('nouveau-lieu').value.trim();
+      if (nom.length < 2) { afficherToast('attention', 'Nom trop court', 'Saisissez au moins 2 caractères.'); return; }
+      try {
+        await api('/api/admin/lieux', { method: 'POST', body: JSON.stringify({ nom, groupe: $('groupe-lieu').value }) });
+        $('nouveau-lieu').value = '';
+        await chargerLieux();
+        afficherToast('succes', 'Lieu ajouté', `${nom} est proposé aux témoins.`);
+      } catch (err) {
+        afficherToast('critique', 'Ajout impossible', err.message);
+      }
+    });
+
+    $('liste-lieux').addEventListener('click', async (e) => {
+      const bouton = e.target.closest('[data-supprimer-lieu]');
+      if (!bouton) return;
+      const lieu = etat.lieux.find(l => l.id === Number(bouton.dataset.supprimerLieu));
+      try {
+        await api(`/api/admin/lieux/${lieu.id}`, { method: 'DELETE' });
+        await chargerLieux();
+        afficherToast('info', 'Lieu retiré', lieu.nom, 2500);
+      } catch (err) {
+        afficherToast('critique', 'Suppression impossible', err.message);
+      }
+    });
+
+    /* =========================================================
+       11. FENÊTRES MODALES
+       ========================================================= */
+    function fermerModale() { $('modale-racine').innerHTML = ''; }
+
+    function ouvrirModale({ titre, description, contenu, libelleValider, valider, apresOuverture, danger = false }) {
+      $('modale-racine').innerHTML = `
+        <div class="modale-fond" id="modale-fond">
+          <form class="modale" id="modale-form" role="dialog" aria-modal="true" aria-labelledby="modale-titre" novalidate>
+            <h2 id="modale-titre"></h2>
+            <p id="modale-description"></p>
+            <div class="erreur" id="modale-erreur" hidden></div>
+            ${contenu}
+            <div class="modale-actions">
+              <button type="button" class="btn btn-gris" id="modale-annuler">Annuler</button>
+              <button type="submit" class="btn ${danger ? 'btn-danger' : 'btn-bleu'}" id="modale-valider"></button>
+            </div>
+          </form>
+        </div>`;
+      $('modale-titre').textContent = titre;
+      $('modale-description').textContent = description;
+      $('modale-valider').textContent = libelleValider;
+
+      $('modale-annuler').addEventListener('click', fermerModale);
+      $('modale-fond').addEventListener('mousedown', (e) => { if (e.target.id === 'modale-fond') fermerModale(); });
+      $('modale-form').addEventListener('keydown', (e) => { if (e.key === 'Escape') fermerModale(); });
+
+      $('modale-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const bouton = $('modale-valider');
+        bouton.disabled = true;
+        bouton.innerHTML = '<span class="mini-spinner"></span> Enregistrement…';
+        try {
+          await valider();
+          fermerModale();
+        } catch (err) {
+          $('modale-erreur').textContent = err.message;
+          $('modale-erreur').hidden = false;
+          bouton.disabled = false;
+          bouton.textContent = libelleValider;
+        }
+      });
+
+      if (apresOuverture) apresOuverture();
+      else $('modale-valider').focus();
+    }
+
+    function confirmer(titre, description, libelle, action) {
+      ouvrirModale({ titre, description, contenu: '', libelleValider: libelle, valider: action, danger: true });
+    }
+
+    /* =========================================================
+       12. TEMPS RÉEL
+       ========================================================= */
+    function majEtatConnexion(enLigne) {
+      $('etat-connexion').classList.toggle('hors-ligne', !enLigne);
+      $('texte-connexion').textContent = enLigne ? 'En direct' : (etat.token ? 'Reconnexion…' : 'Hors ligne');
+    }
+
+    function connecterTempsReel() {
+      if (!etat.token) return;
+      const ws = new WebSocket(`${URL_WS}?token=${encodeURIComponent(etat.token)}`);
+      etat.ws = ws;
+
+      ws.onopen = () => {
+        etat.tentativesWs = 0;
+        majEtatConnexion(true);
+        ws.ping = setInterval(() => ws.readyState === 1 && ws.send('ping'), 25000);
+      };
+
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        switch (message.type) {
+          case 'nouvelle_alerte': {
+            const a = message.alerte;
+            etat.alertes.unshift(a);
+            etat.nouvelles.add(a.id);
+            setTimeout(() => etat.nouvelles.delete(a.id), 4000);
+            afficherAlertes();
+            bip();
+            afficherToast(a.gravite === 'critique' ? 'critique' : 'attention', `Nouvelle alerte → ${a.hopital_nom}`, `${a.lieu} – ${a.diagnostic || a.description}`, 7000);
+            actualiserStatsBientot();
+            break;
+          }
+          case 'alerte_maj': {
+            const index = etat.alertes.findIndex(x => x.id === message.alerte.id);
+            if (index >= 0) etat.alertes[index] = { ...etat.alertes[index], ...message.alerte };
+            afficherAlertes();
+            if (message.alerte.statut === 'refusee') {
+              afficherToast('attention', `${message.alerte.hopital_nom} a refusé une alerte`, message.alerte.motif || 'Sans motif précisé.');
+            }
+            actualiserStatsBientot();
+            break;
+          }
+          case 'disponibilite': {
+            const index = etat.hopitaux.findIndex(h => h.id === message.hopital.id);
+            if (index >= 0) etat.hopitaux[index] = message.hopital;
+            afficherHopitaux();
+            actualiserStatsBientot();
+            break;
+          }
+          case 'hopitaux_maj':
+            chargerHopitaux().catch(() => {});
+            actualiserStatsBientot();
+            break;
+          case 'lieux_maj':
+            chargerLieux().catch(() => {});
+            break;
+          case 'message': {
+            const a = etat.alertes.find(x => x.id === message.alerte_id);
+            if (!a) break;
+            a.messages ??= [];
+            if (a.messages.some(m => m.id === message.message.id)) break;
+            a.messages.push(message.message);
+            afficherAlertes();
+            if (message.message.grave) {
+              bip();
+              afficherToast('critique', `⚠ Témoin – ${a.lieu} (${a.hopital_nom})`, message.message.texte, 10000);
+            }
+            break;
+          }
+          case 'gravite': {
+            const a = etat.alertes.find(x => x.id === message.alerte_id);
+            if (!a) break;
+            Object.assign(a, { gravite: message.gravite, diagnostic: message.diagnostic, gravite_maj_a: message.gravite_maj_a });
+            afficherAlertes();
+            afficherToast('critique', `⚠ Gravité relevée : ${GRAVITES[message.gravite]}`, `${a.lieu} → ${a.hopital_nom} (${message.source})`, 8000);
+            actualiserStatsBientot();
+            break;
+          }
+          case 'ambulance': {
+            const a = etat.alertes.find(x => x.id === message.alerte_id);
+            if (!a || !message.ambulance || a.amb_statut === message.ambulance.statut) break;
+            a.amb_statut = message.ambulance.statut;
+            afficherAlertes();
+            break;
+          }
+        }
+      };
+
+      ws.onclose = () => {
+        clearInterval(ws.ping);
+        majEtatConnexion(false);
+        if (!etat.token) return;
+        const delai = Math.min(15000, 1000 * 2 ** etat.tentativesWs++);
+        setTimeout(async () => {
+          if (!etat.token) return;
+          try { await Promise.all([chargerStats(), chargerAlertes(), chargerHopitaux()]); } catch { /* serveur absent */ }
+          connecterTempsReel();
+        }, delai);
+      };
+    }
+
+    /* =========================================================
+       13. DÉMARRAGE
+       ========================================================= */
+    (async () => {
+      if (!etat.token) return;
+      try {
+        await ouvrirApplication();
+      } catch {
+        deconnexionLocale();
+      }
+    })();
+  </script>
+</body>
+</html>
